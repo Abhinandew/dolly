@@ -86,8 +86,8 @@ export class AudioAnalyzer {
       this.sourceNode.connect(this.analyser);
 
       const bufferLength = this.analyser.frequencyBinCount;
-      this.freqData = new Uint8Array(bufferLength);
-      this.timeData = new Uint8Array(bufferLength);
+      this.freqData = new Uint8Array(new ArrayBuffer(bufferLength));
+      this.timeData = new Uint8Array(new ArrayBuffer(bufferLength));
 
       this.isListening = true;
       this.beatDetector.reset();
@@ -110,8 +110,8 @@ export class AudioAnalyzer {
     node.connect(this.analyser);
 
     const bufferLength = this.analyser.frequencyBinCount;
-    this.freqData = new Uint8Array(bufferLength);
-    this.timeData = new Uint8Array(bufferLength);
+    this.freqData = new Uint8Array(new ArrayBuffer(bufferLength));
+    this.timeData = new Uint8Array(new ArrayBuffer(bufferLength));
 
     this.isListening = true;
     this.beatDetector.reset();
@@ -140,8 +140,13 @@ export class AudioAnalyzer {
       return out;
     }
 
-    this.analyser.getByteFrequencyData(this.freqData);
-    this.analyser.getByteTimeDomainData(this.timeData);
+    this.analyser.getByteFrequencyData(
+  this.freqData as unknown as Uint8Array<ArrayBuffer>
+);
+
+this.analyser.getByteTimeDomainData(
+  this.timeData as unknown as Uint8Array<ArrayBuffer>
+);
 
     const binCount = this.analyser.frequencyBinCount;
     const sampleRate = this.audioCtx ? this.audioCtx.sampleRate : 44100;
@@ -209,8 +214,8 @@ export class AudioAnalyzer {
   }
 
   public getByteFrequencyData(): Uint8Array | null {
-    return this.freqData;
-  }
+  return this.freqData as Uint8Array | null;
+}
 
   public isActive(): boolean {
     return this.isListening;
