@@ -15,7 +15,11 @@ import { RigSolver } from './Rig';
  */
 export class DollyRenderer {
   private ctx: CanvasRenderingContext2D;
-  public showDebugRig: boolean = false; // Strictly false in production, available for debug only
+  public showDebugRig: boolean = false;
+
+  // ── Gradient cache — recreate only when position/scale changes ────────────
+  private cachedGlowGrad: CanvasGradient | null = null;
+  private cachedGlowKey: string = '';
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -118,7 +122,8 @@ export class DollyRenderer {
   }
 
   /**
-   * Ambient aura that pulses dynamically to bass beats
+   * Ambient aura that pulses dynamically to bass beats.
+   * Gradient is cached and only recreated when the torso position or scale changes.
    */
   private drawBeatGlow(
     landmarks: RigLandmarks,
@@ -126,27 +131,30 @@ export class DollyRenderer {
     beatIntensity: number,
     scale: number
   ): void {
+    if (beatIntensity < 0.01 && appearance.glowIntensity < 0.05) return; // skip if invisible
+
     const ctx = this.ctx;
     const glowRadius = (165 + beatIntensity * 55) * scale;
     const glowAlpha = (0.12 + beatIntensity * 0.32) * (appearance.glowIntensity ?? 0.5);
+    const tx = Math.round(landmarks.torso.x);
+    const ty = Math.round(landmarks.torso.y);
+    const glowColor = appearance.glowColor || 'rgba(99, 102, 241, 0.45)';
+
+    // Only recreate gradient when position or color changes (not every frame)
+    const gradKey = `${tx},${ty},${Math.round(glowRadius)},${glowColor}`;
+    if (gradKey !== this.cachedGlowKey || !this.cachedGlowGrad) {
+      this.cachedGlowGrad = ctx.createRadialGradient(tx, ty, 20 * scale, tx, ty, glowRadius);
+      this.cachedGlowGrad.addColorStop(0, glowColor);
+      this.cachedGlowGrad.addColorStop(0.6, 'rgba(99, 102, 241, 0.08)');
+      this.cachedGlowGrad.addColorStop(1, 'rgba(99, 102, 241, 0)');
+      this.cachedGlowKey = gradKey;
+    }
 
     ctx.save();
-    const grad = ctx.createRadialGradient(
-      landmarks.torso.x,
-      landmarks.torso.y,
-      20 * scale,
-      landmarks.torso.x,
-      landmarks.torso.y,
-      glowRadius
-    );
-    grad.addColorStop(0, appearance.glowColor || 'rgba(99, 102, 241, 0.45)');
-    grad.addColorStop(0.6, 'rgba(99, 102, 241, 0.08)');
-    grad.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-    ctx.fillStyle = grad;
+    ctx.fillStyle = this.cachedGlowGrad;
     ctx.globalAlpha = glowAlpha;
     ctx.beginPath();
-    ctx.arc(landmarks.torso.x, landmarks.torso.y, glowRadius, 0, Math.PI * 2);
+    ctx.arc(tx, ty, glowRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -609,10 +617,15 @@ export class DollyRenderer {
       ctx.restore();
     } else if (appearance.accessory === 'halo') {
       ctx.save();
+      // Outer soft glow ring (cheap — no shadowBlur)
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.35)';
+      ctx.lineWidth = 10 * scale;
+      ctx.beginPath();
+      ctx.ellipse(lm.head.x, lm.head.y - headR - 14 * scale, 32 * scale, 9 * scale, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // Solid bright ring on top
       ctx.strokeStyle = '#facc15';
       ctx.lineWidth = 4 * scale;
-      ctx.shadowColor = '#fde047';
-      ctx.shadowBlur = 12 * scale;
       ctx.beginPath();
       ctx.ellipse(lm.head.x, lm.head.y - headR - 14 * scale, 32 * scale, 9 * scale, 0, 0, Math.PI * 2);
       ctx.stroke();

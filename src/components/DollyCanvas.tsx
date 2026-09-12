@@ -36,7 +36,8 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    // desynchronized:true causes tearing on mobile — disabled
+    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: false });
     if (!ctx) return;
 
     rendererRef.current = new DollyRenderer(ctx);
@@ -47,7 +48,12 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     const cssSizeRef = { w: 0, h: 0 };
 
     const renderLoop = (time: number) => {
-      const deltaTime = Math.max(1, Math.min(100, time - lastTime));
+      // Clamp deltaTime — if tab was backgrounded the spike would cause
+      // a pose jump. Cap at 50ms (20fps minimum) so it's imperceptible.
+      const raw = time - lastTime;
+      const deltaTime = raw > 250
+        ? 16   // tab returned from background — treat as single normal frame
+        : Math.max(1, Math.min(50, raw));
       lastTime = time;
 
       // analyze() is called ONLY here (the sole RAF tick owner).
@@ -104,15 +110,23 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     };
 
     handleResize();
-    const resizeObserver = new ResizeObserver(handleResize);
+    let resizeRaf: number | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+      // Throttle to one resize per rAF to prevent iOS scroll-bounce glitch
+      if (resizeRaf !== null) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = null;
+        handleResize();
+      });
+    });
     resizeObserver.observe(container);
 
     animationFrameId = requestAnimationFrame(renderLoop);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
       resizeObserver.disconnect();
-      // Clear the canvas so a stale frame isn't visible on remount
       if (canvas) {
         const cleanCtx = canvas.getContext('2d');
         if (cleanCtx) cleanCtx.clearRect(0, 0, canvas.width, canvas.height);
