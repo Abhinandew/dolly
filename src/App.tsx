@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { DollyProvider } from './context/DollyContext';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
+import { NotFound } from './pages/NotFound';
 import { Loader2 } from 'lucide-react';
 
 // Lazy-load non-essential pages for ultra-fast startup
@@ -11,7 +12,6 @@ const CustomizeDolly = lazy(() =>
 const Settings = lazy(() =>
   import('./pages/Settings').then((module) => ({ default: module.Settings }))
 );
-import { NotFound } from './pages/NotFound';
 
 const PageLoader: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3 text-slate-400">
