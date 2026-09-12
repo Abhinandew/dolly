@@ -45,10 +45,18 @@ export function ensureFirebaseInitialized(): {
   }
 
   initialized = true;
+
+  // Reject empty values, missing values, and common placeholder strings
+  const PLACEHOLDERS = new Set([
+    '', 'YOUR_API_KEY', 'your-api-key', 'placeholder', 'undefined', 'null',
+    'VITE_FIREBASE_API_KEY', 'YOUR_PROJECT_ID', 'your-project-id',
+  ]);
   const hasValidConfig = Boolean(
     defaultFirebaseConfig.apiKey &&
     defaultFirebaseConfig.projectId &&
-    defaultFirebaseConfig.apiKey !== 'YOUR_API_KEY'
+    !PLACEHOLDERS.has(defaultFirebaseConfig.apiKey) &&
+    !PLACEHOLDERS.has(defaultFirebaseConfig.projectId) &&
+    defaultFirebaseConfig.apiKey.length > 10
   );
 
   if (hasValidConfig) {

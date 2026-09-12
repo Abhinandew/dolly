@@ -18,6 +18,7 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     danceEngineRef,
     choreoPlayerRef,
     isListening,
+    audioAnalysisRef,
   } = useDolly();
 
   // High-frequency animation loop access via stable refs (no React state in RAF)
@@ -49,7 +50,11 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
       const deltaTime = Math.max(1, Math.min(100, time - lastTime));
       lastTime = time;
 
+      // analyze() is called ONLY here (the sole RAF tick owner).
+      // Result is written into audioAnalysisRef so the telemetry loop
+      // and energy switcher can read it without calling analyze() again.
       const audio = audioAnalyzerRef.current.analyze(time);
+      audioAnalysisRef.current = audio;
 
       const proceduralPose = danceEngineRef.current.update(
         audio,
@@ -107,8 +112,14 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     return () => {
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
+      // Clear the canvas so a stale frame isn't visible on remount
+      if (canvas) {
+        const cleanCtx = canvas.getContext('2d');
+        if (cleanCtx) cleanCtx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      rendererRef.current = null;
     };
-  }, [audioAnalyzerRef, danceEngineRef, choreoPlayerRef]);
+  }, [audioAnalyzerRef, audioAnalysisRef, danceEngineRef, choreoPlayerRef]);
 
   return (
     <div
@@ -118,6 +129,8 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
       <canvas
         ref={canvasRef}
         className="block touch-none pointer-events-none"
+        aria-label="Dolly dancing character animation"
+        role="img"
       />
     </div>
   );

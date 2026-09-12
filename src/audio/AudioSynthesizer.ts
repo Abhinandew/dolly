@@ -64,14 +64,20 @@ export class AudioSynthesizer {
   private scheduleLoop = (): void => {
     if (!this.isPlaying || !this.ctx || !this.currentTrack) return;
 
-    const secondsPerBeat = 60.0 / this.currentTrack.bpm;
-    const stepDuration = secondsPerBeat / 4; // 16th notes
+    try {
+      const secondsPerBeat = 60.0 / this.currentTrack.bpm;
+      const stepDuration = secondsPerBeat / 4; // 16th notes
 
-    // Schedule 100ms ahead
-    while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
-      this.playStep(this.step, this.nextNoteTime, this.currentTrack);
-      this.nextNoteTime += stepDuration;
-      this.step = (this.step + 1) % 16;
+      // Schedule 100ms ahead
+      while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+        this.playStep(this.step, this.nextNoteTime, this.currentTrack);
+        this.nextNoteTime += stepDuration;
+        this.step = (this.step + 1) % 16;
+      }
+    } catch {
+      // Scheduling error (e.g. context closed mid-loop) — stop cleanly
+      this.stop();
+      return;
     }
 
     this.timerId = window.setTimeout(this.scheduleLoop, 25);
@@ -242,15 +248,17 @@ export class AudioSynthesizer {
   }
 
   public stop(): void {
+    this.isPlaying = false;
     if (this.timerId !== null) {
       clearTimeout(this.timerId);
       this.timerId = null;
     }
-    this.isPlaying = false;
     if (this.ctx && this.ctx.state !== 'closed') {
-      this.ctx.close();
-      this.ctx = null;
+      this.ctx.close().catch(() => {
+        // Ignore — context may already be released
+      });
     }
+    this.ctx = null;
     this.masterGain = null;
     this.currentTrack = null;
   }

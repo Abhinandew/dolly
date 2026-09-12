@@ -59,6 +59,8 @@ export interface DollyContextType {
   danceEngineRef: React.MutableRefObject<DanceEngine>;
   choreoPlayerRef: React.MutableRefObject<ChoreographyPlayer>;
   audioSynthRef: React.MutableRefObject<AudioSynthesizer>;
+  // Shared analysis cache — RAF writes here; all other readers pull from here
+  audioAnalysisRef: React.MutableRefObject<AudioAnalysis>;
 }
 
 const DollyContext = createContext<DollyContextType | null>(null);
@@ -539,25 +541,14 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Periodic throttled telemetry updater (10 FPS) for React UI displays
+  // Periodic throttled telemetry updater (10 FPS) for React UI displays.
+  // Does NOT call analyze() — that is the RAF loop's job (DollyCanvas).
+  // Reads from audioAnalysisRef which the RAF writes every frame.
   useEffect(() => {
     const interval = setInterval(() => {
       if (audioAnalyzerRef.current.isActive()) {
-        const a = audioAnalyzerRef.current.analyze(performance.now());
-        const snapshot: AudioAnalysis = {
-          volume: a.volume,
-          energy: a.energy,
-          bassEnergy: a.bassEnergy,
-          midEnergy: a.midEnergy,
-          trebleEnergy: a.trebleEnergy,
-          beatDetected: a.beatDetected,
-          beatIntensity: a.beatIntensity,
-          estimatedBPM: a.estimatedBPM,
-          beatPhase: a.beatPhase,
-          timestamp: a.timestamp,
-        };
-        audioAnalysisRef.current = snapshot;
-        setAudioAnalysis(snapshot);
+        // Snapshot the ref value into React state for UI components.
+        setAudioAnalysis({ ...audioAnalysisRef.current });
       }
     }, 100);
 
@@ -612,6 +603,7 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     danceEngineRef,
     choreoPlayerRef,
     audioSynthRef,
+    audioAnalysisRef,
   };
 
   return <DollyContext.Provider value={contextValue}>{children}</DollyContext.Provider>;

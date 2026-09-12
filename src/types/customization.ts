@@ -2,8 +2,8 @@
  * Dolly Appearance and Customization Types
  */
 
-export type OutfitType = 'none' | 'hoodie' | 'suspenders' | 'bowtie' | 'dj_vest' | 'athletic';
-export type AccessoryType = 'none' | 'headphones' | 'cool_shades' | 'party_visor' | 'top_hat' | 'halo' | 'ribbon';
+export type OutfitType = 'none' | 'hoodie' | 'suspenders' | 'bowtie' | 'athletic';
+export type AccessoryType = 'none' | 'headphones' | 'cool_shades' | 'party_visor' | 'top_hat' | 'halo';
 
 export interface DollyAppearance {
   bodyColor: string;          // Hex color (default: #FFFFFF)

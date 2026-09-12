@@ -20,6 +20,13 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPath, onNaviga
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between glass-panel border-b border-white/5">
+      {/* Skip to main content — accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold"
+      >
+        Skip to main content
+      </a>
       {/* Brand Logo */}
       <div
         onClick={() => onNavigate('/')}
@@ -87,9 +94,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPath, onNaviga
         <button
           onClick={() => onNavigate('/settings')}
           className="p-2 rounded-xl bg-slate-800/70 border border-white/10 hover:bg-slate-700/80 text-slate-300 transition-colors"
+          aria-label="Open Settings"
           title="Settings"
         >
-          <Sliders className="w-4 h-4" />
+          <Sliders className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
     </header>

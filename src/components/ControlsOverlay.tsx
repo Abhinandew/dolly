@@ -120,9 +120,10 @@ export const ControlsOverlay: React.FC = React.memo(() => {
         <button
           onClick={toggleFullscreen}
           className="p-2.5 rounded-xl bg-slate-800/80 border border-white/5 hover:bg-slate-700 text-slate-300 transition-colors"
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          {isFullscreen ? <Minimize2 className="w-4 h-4" aria-hidden="true" /> : <Maximize2 className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
     </div>

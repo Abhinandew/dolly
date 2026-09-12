@@ -26,17 +26,14 @@ const PageLoader: React.FC = () => (
 );
 
 export const App: React.FC = () => {
-  // Sync router with window.location.pathname or hash
-  const [currentPath, setCurrentPath] = useState<string>(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (hash) return hash;
-    return window.location.pathname || '/';
-  });
+  // Pure pathname router — no hash fallback to keep back/forward consistent
+  const [currentPath, setCurrentPath] = useState<string>(
+    () => window.location.pathname || '/'
+  );
 
   useEffect(() => {
     const handlePopState = () => {
-      const hash = window.location.hash.replace('#', '');
-      setCurrentPath(hash || window.location.pathname || '/');
+      setCurrentPath(window.location.pathname || '/');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -85,7 +82,7 @@ export const App: React.FC = () => {
     <DollyProvider>
       <div className="relative min-h-screen bg-[#08090e] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
         <Navbar currentPath={currentPath} onNavigate={navigate} />
-        <main className="flex-1 w-full flex flex-col">{renderPage()}</main>
+        <main id="main-content" className="flex-1 w-full flex flex-col">{renderPage()}</main>
       </div>
     </DollyProvider>
   );
