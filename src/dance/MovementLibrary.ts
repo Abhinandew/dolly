@@ -1,5 +1,9 @@
 import { DollPose, MovementType } from '../types/pose';
 
+// ─── Tiny seeded hash so we get repeatable-per-phase variation ───────────────
+function fract(x: number): number { return x - Math.floor(x); }
+function hash(n: number): number { return fract(Math.sin(n) * 43758.5453123); }
+
 /**
  * Creates a fresh default neutral standing pose
  */
@@ -109,56 +113,31 @@ export class MovementLibrary {
   }
 
   /**
-   * 3. BODY BOUNCE: Downward compression on the beat with knee flexion and volume-preserving squash
+   * 3. BODY BOUNCE: Sharp downward compression on the beat with knee flexion.
+   * Now has a subtle side-sway that makes every bounce slightly different.
    */
   public static bodyBounce(phase: number, intensity: number = 1.0): Partial<DollPose> {
     const p = phase * Math.PI * 2;
-    // Downward compression peak at phase 0.0 / 1.0
     const bounce = Math.cos(p);
-    const compression = Math.max(0, bounce) * 0.32 * intensity; // Downward dip
+    const compression = Math.max(0, bounce) * 0.35 * intensity;
+    // Slight random sway so no two bounces look identical
+    const swayNoise = Math.sin(p * 1.7 + 0.9) * 0.08 * intensity;
 
     return {
       root: {
-        x: 0,
-        y: compression * 0.65, // Lower center of gravity
-        scaleX: 1 + compression * 0.22, // Fleshy lateral squash
-        scaleY: 1 - compression * 0.18, // Vertical compression
-        rotation: 0,
+        x: swayNoise,
+        y: compression * 0.72,
+        scaleX: 1 + compression * 0.24,
+        scaleY: 1 - compression * 0.19,
+        rotation: swayNoise * 0.08,
       },
-      pelvis: {
-        x: 0,
-        y: compression * 0.15,
-        angle: 0,
-      },
-      torso: {
-        angle: compression * 0.05,
-        stretch: 1 - compression * 0.1,
-      },
-      leftLeg: {
-        hipAngle: 0.08 + compression * 0.45,
-        kneeAngle: 0.08 + compression * 0.75, // Knees bend to absorb weight
-        ankleAngle: -compression * 0.2,
-      },
-      rightLeg: {
-        hipAngle: 0.08 + compression * 0.45,
-        kneeAngle: 0.08 + compression * 0.75,
-        ankleAngle: -compression * 0.2,
-      },
-      leftArm: {
-        shoulderAngle: 0.25 + compression * 0.25, // Arms swing slightly out on squash
-        elbowAngle: 0.35 + compression * 0.3,
-        wristAngle: -compression * 0.15,
-      },
-      rightArm: {
-        shoulderAngle: 0.25 + compression * 0.25,
-        elbowAngle: 0.35 + compression * 0.3,
-        wristAngle: -compression * 0.15,
-      },
-      head: {
-        x: 0,
-        y: compression * 0.1,
-        angle: Math.sin(p - 0.3) * 0.12 * intensity, // Head follow-through lag
-      },
+      pelvis: { x: swayNoise * 0.8, y: compression * 0.18, angle: swayNoise * 0.15 },
+      torso:  { angle: compression * 0.06 + swayNoise * 0.04, stretch: 1 - compression * 0.1 },
+      leftLeg:  { hipAngle: 0.08 + compression * 0.5,  kneeAngle: 0.08 + compression * 0.82, ankleAngle: -compression * 0.22 },
+      rightLeg: { hipAngle: 0.08 + compression * 0.5,  kneeAngle: 0.08 + compression * 0.82, ankleAngle: -compression * 0.22 },
+      leftArm:  { shoulderAngle: 0.25 + compression * 0.3,  elbowAngle: 0.35 + compression * 0.35, wristAngle: -compression * 0.18 },
+      rightArm: { shoulderAngle: 0.25 + compression * 0.3,  elbowAngle: 0.35 + compression * 0.35, wristAngle: compression * 0.18 },
+      head: { x: swayNoise * 0.3, y: compression * 0.12, angle: Math.sin(p - 0.3) * 0.14 * intensity },
     };
   }
 
@@ -461,44 +440,40 @@ export class MovementLibrary {
   }
 
   /**
-   * 12. HIP SWAY: Fluid rhythmic pelvis sway with organic S-curve spine balance
+   * 12. HIP SWAY: Figure-8 pelvis path with organic S-curve spine.
+   * Deliberately different frequency ratio so it doesn't sync perfectly with body bounce.
    */
   public static hipSway(phase: number, intensity: number = 1.0): Partial<DollPose> {
     const p = phase * Math.PI * 2;
-    const sway = Math.sin(p);
-    const swayArm = Math.sin(p - 0.25); // Arms swing with pendulum delay
+    const sway     = Math.sin(p);
+    const lift     = Math.sin(p * 2) * 0.12 * intensity;        // figure-8 vertical
+    const swayArm  = Math.sin(p - 0.3) * intensity;
+    const lagArm2  = Math.sin(p + 0.4) * intensity;
 
     return {
       pelvis: {
-        x: sway * 0.52 * intensity,
-        y: Math.abs(Math.cos(p)) * 0.08 * intensity,
-        angle: sway * 0.24 * intensity,
+        x: sway * 0.58 * intensity,
+        y: lift,
+        angle: sway * 0.28 * intensity,
       },
       root: {
-        x: sway * 0.18 * intensity,
-        y: 0,
+        x: sway * 0.2 * intensity,
+        y: Math.abs(lift) * 0.5,
         scaleX: 1,
         scaleY: 1,
-        rotation: -sway * 0.06 * intensity,
+        rotation: -sway * 0.07 * intensity,
       },
-      torso: {
-        angle: -sway * 0.18 * intensity, // S-curve counter-tilt
-        stretch: 1,
-      },
-      head: {
-        x: -sway * 0.06 * intensity,
-        y: 0,
-        angle: sway * 0.14 * intensity, // Head stays level
-      },
+      torso: { angle: -sway * 0.2 * intensity, stretch: 1 },
+      head:  { x: -sway * 0.07 * intensity, y: 0, angle: sway * 0.16 * intensity },
       leftArm: {
-        shoulderAngle: 0.28 + swayArm * 0.35 * intensity,
-        elbowAngle: 0.35 + Math.abs(sway) * 0.2 * intensity,
-        wristAngle: swayArm * 0.15 * intensity,
+        shoulderAngle: 0.3 + swayArm * 0.42 * intensity,
+        elbowAngle:    0.38 + Math.abs(sway) * 0.25 * intensity,
+        wristAngle:    swayArm * 0.18 * intensity,
       },
       rightArm: {
-        shoulderAngle: 0.28 - swayArm * 0.35 * intensity,
-        elbowAngle: 0.35 + Math.abs(sway) * 0.2 * intensity,
-        wristAngle: -swayArm * 0.15 * intensity,
+        shoulderAngle: 0.3 - lagArm2 * 0.42 * intensity,
+        elbowAngle:    0.38 + Math.abs(sway) * 0.25 * intensity,
+        wristAngle:    -lagArm2 * 0.18 * intensity,
       },
     };
   }
@@ -734,28 +709,232 @@ export class MovementLibrary {
     };
   }
 
+  // ─── NEW MOVEMENTS ────────────────────────────────────────────────────────
+
+  /**
+   * 19. RUNNING MAN: Alternating high-knee march with opposing arms — the classic.
+   *     Phase drives left/right alternation; at double tempo it looks like a real running man.
+   */
+  public static runningMan(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Left leg lifts on beat, right on off-beat
+    const leftLift  = Math.max(0,  Math.sin(p));
+    const rightLift = Math.max(0, -Math.sin(p));
+    const bounce    = Math.abs(Math.sin(p)) * 0.18 * intensity;
+
+    return {
+      root: { x: 0, y: bounce, scaleX: 1 + bounce * 0.08, scaleY: 1 - bounce * 0.06, rotation: Math.sin(p) * 0.04 * intensity },
+      torso: { angle: Math.sin(p) * 0.1 * intensity, stretch: 1 },
+      head:  { x: 0, y: 0, angle: Math.sin(p - 0.4) * 0.1 * intensity },
+      leftLeg: {
+        hipAngle:   0.12 + leftLift  * 0.72 * intensity,
+        kneeAngle:  0.08 + leftLift  * 0.95 * intensity,
+        ankleAngle: leftLift * 0.15 * intensity,
+      },
+      rightLeg: {
+        hipAngle:   0.12 + rightLift * 0.72 * intensity,
+        kneeAngle:  0.08 + rightLift * 0.95 * intensity,
+        ankleAngle: rightLift * 0.15 * intensity,
+      },
+      // Arms swing opposite to legs
+      leftArm:  { shoulderAngle: 0.45 - Math.sin(p) * 0.65 * intensity, elbowAngle: 0.6 + leftLift  * 0.4, wristAngle: 0 },
+      rightArm: { shoulderAngle: 0.45 + Math.sin(p) * 0.65 * intensity, elbowAngle: 0.6 + rightLift * 0.4, wristAngle: 0 },
+    };
+  }
+
+  /**
+   * 20. ROBOT CHOP: Mechanical stiff-joint arms with sharp syncopated chops.
+   *     Uses a stepped wave (quantized sine) for mechanical feel.
+   */
+  public static robotChop(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Quantize to 4 steps per beat for robotic snap
+    const stepped = Math.round(Math.sin(p) * 2) / 2;
+    const steppedCos = Math.round(Math.cos(p) * 2) / 2;
+
+    return {
+      root: { x: 0, y: Math.abs(stepped) * 0.12 * intensity, scaleX: 1, scaleY: 1, rotation: stepped * 0.04 * intensity },
+      torso: { angle: stepped * 0.14 * intensity, stretch: 1 },
+      head:  { x: steppedCos * 0.1 * intensity, y: 0, angle: -stepped * 0.18 * intensity },
+      leftArm: {
+        shoulderAngle: 0.4 + stepped  * 0.9 * intensity,
+        elbowAngle:    0.1 + Math.abs(stepped) * 1.2 * intensity,
+        wristAngle:    stepped * 0.35 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.4 - steppedCos * 0.9 * intensity,
+        elbowAngle:    0.1 + Math.abs(steppedCos) * 1.2 * intensity,
+        wristAngle:    -steppedCos * 0.35 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.05 + Math.abs(stepped) * 0.15 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.05 + Math.abs(steppedCos) * 0.15 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+    };
+  }
+
+  /**
+   * 21. CHEST POP: Sharp chest isolation — torso punches forward on every beat.
+   *     Quick pop-and-lock feel. The wrists flick outward on the accent.
+   */
+  public static chestPop(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Sharp attack, long decay — looks like a hard pop
+    const pop = Math.max(0, Math.pow(Math.sin(p), 3)) * intensity;
+    const retract = Math.max(0, -Math.sin(p)) * 0.4 * intensity;
+
+    return {
+      root: { x: 0, y: pop * 0.15, scaleX: 1 + pop * 0.1, scaleY: 1 - pop * 0.07, rotation: 0 },
+      torso: { angle: pop * 0.25, stretch: 1 + pop * 0.06 },
+      head:  { x: 0, y: pop * 0.06, angle: pop * 0.12 },
+      leftArm: {
+        shoulderAngle: 0.55 - pop * 0.2,
+        elbowAngle:    0.8  + pop * 0.45,
+        wristAngle:    pop * 0.45 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.55 - pop * 0.2,
+        elbowAngle:    0.8  + pop * 0.45,
+        wristAngle:    -pop * 0.45 * intensity,
+      },
+      leftLeg:  { hipAngle: retract * 0.2 + 0.05, kneeAngle: retract * 0.15 + 0.04, ankleAngle: 0 },
+      rightLeg: { hipAngle: retract * 0.2 + 0.05, kneeAngle: retract * 0.15 + 0.04, ankleAngle: 0 },
+    };
+  }
+
+  /**
+   * 22. WINDMILL ARMS: Big sweeping arm circles in alternating directions.
+   *     Each arm runs at offset phase for asynchronous windmill feel.
+   */
+  public static windmillArms(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    const leftPhase  = p;
+    const rightPhase = p + Math.PI; // 180° offset
+
+    return {
+      root: { x: 0, y: Math.abs(Math.sin(p)) * 0.14 * intensity, scaleX: 1, scaleY: 1, rotation: Math.sin(p) * 0.06 * intensity },
+      torso: { angle: Math.sin(p) * 0.15 * intensity, stretch: 1 },
+      head:  { x: 0, y: 0, angle: Math.sin(p - 0.5) * 0.12 * intensity },
+      leftArm: {
+        shoulderAngle: 1.0 + Math.sin(leftPhase)  * 1.05 * intensity,
+        elbowAngle:    0.55 + Math.cos(leftPhase)  * 0.35 * intensity,
+        wristAngle:    Math.sin(leftPhase  + 0.5)  * 0.3 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 1.0 + Math.sin(rightPhase) * 1.05 * intensity,
+        elbowAngle:    0.55 + Math.cos(rightPhase) * 0.35 * intensity,
+        wristAngle:    Math.sin(rightPhase + 0.5)  * 0.3 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.06, kneeAngle: 0.05, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.06, kneeAngle: 0.05, ankleAngle: 0 },
+    };
+  }
+
+  /**
+   * 23. BOUNCE STEP: Alternating left-right weight shifts with full body bob.
+   *     Uses `hash()` to add slightly different arc heights each cycle.
+   */
+  public static bounceStep(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    const dir   = Math.sin(p);              // -1 → left, +1 → right
+    const bob   = Math.abs(Math.cos(p));    // up on the off-beats
+    // slight random height variation each cycle
+    const noiseHeight = hash(Math.floor(phase * 4)) * 0.12;
+
+    const shiftLeft  = Math.max(0, -dir);
+    const shiftRight = Math.max(0,  dir);
+
+    return {
+      root: { x: dir * 0.32 * intensity, y: (bob + noiseHeight) * 0.25 * intensity, scaleX: 1 + bob * 0.06, scaleY: 1 - bob * 0.04, rotation: dir * 0.06 * intensity },
+      pelvis: { x: dir * 0.28 * intensity, y: 0, angle: dir * 0.2 * intensity },
+      torso:  { angle: -dir * 0.12 * intensity, stretch: 1 },
+      head:   { x: 0, y: 0, angle: dir * 0.08 * intensity },
+      leftLeg: {
+        hipAngle:   0.08 + shiftLeft  * 0.35 * intensity,
+        kneeAngle:  0.08 + shiftLeft  * 0.4 * intensity + bob * 0.15,
+        ankleAngle: -shiftLeft * 0.12,
+      },
+      rightLeg: {
+        hipAngle:   0.08 + shiftRight * 0.35 * intensity,
+        kneeAngle:  0.08 + shiftRight * 0.4 * intensity + bob * 0.15,
+        ankleAngle: -shiftRight * 0.12,
+      },
+      leftArm: {
+        shoulderAngle: 0.3 - dir * 0.4 * intensity,
+        elbowAngle:    0.45 + Math.abs(dir) * 0.3,
+        wristAngle:    dir * 0.12 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.3 + dir * 0.4 * intensity,
+        elbowAngle:    0.45 + Math.abs(dir) * 0.3,
+        wristAngle:    -dir * 0.12 * intensity,
+      },
+    };
+  }
+
+  /**
+   * 24. LOCK GROOVE: Classic funk lock — alternate arm lock at 90°, weight-back strut.
+   *     Feels like a funk-style point-and-lock sequence.
+   */
+  public static lockGroove(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Lock snaps on beat (sharp quantized feel)
+    const lock = Math.sign(Math.sin(p)) * 0.5 + 0.5;  // 0 or 1
+    const lockSmooth = Math.sin(p * 2) * 0.5 + 0.5;   // smooth version
+    const swagger = Math.sin(p * 0.5);
+
+    return {
+      root: { x: swagger * 0.18 * intensity, y: lockSmooth * 0.22 * intensity, scaleX: 1, scaleY: 1, rotation: swagger * 0.06 * intensity },
+      pelvis: { x: swagger * 0.28 * intensity, y: 0, angle: swagger * 0.18 * intensity },
+      torso:  { angle: -swagger * 0.12 * intensity, stretch: 1 },
+      head:   { x: Math.sin(p - 0.5) * 0.06 * intensity, y: 0, angle: swagger * 0.1 * intensity },
+      // Left arm: locks upward on beat
+      leftArm: {
+        shoulderAngle: lock > 0.5
+          ? 1.55 * intensity
+          : 0.35,
+        elbowAngle: lock > 0.5
+          ? 1.55 * intensity
+          : 0.5,
+        wristAngle: (lock - 0.5) * 0.5 * intensity,
+      },
+      // Right arm: pointing down-side funk strut
+      rightArm: {
+        shoulderAngle: 0.6 + lockSmooth * 0.5 * intensity,
+        elbowAngle:    0.3 + lockSmooth * 0.8 * intensity,
+        wristAngle:    -lockSmooth * 0.3 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.08 + lockSmooth * 0.25 * intensity, kneeAngle: 0.06 + lockSmooth * 0.2, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.12 - lockSmooth * 0.15 * intensity, kneeAngle: 0.08, ankleAngle: 0 },
+    };
+  }
+
   /**
    * Dispatcher helper by movement name
    */
   public static getMovementPose(type: MovementType, phase: number, intensity: number = 1.0): Partial<DollPose> {
     switch (type) {
-      case 'head bob': return this.headBob(phase, intensity);
-      case 'body bounce': return this.bodyBounce(phase, intensity);
-      case 'shoulder bounce': return this.shoulderBounce(phase, intensity);
-      case 'left arm wave': return this.leftArmWave(phase, intensity);
+      case 'head bob':       return this.headBob(phase, intensity);
+      case 'body bounce':    return this.bodyBounce(phase, intensity);
+      case 'shoulder bounce':return this.shoulderBounce(phase, intensity);
+      case 'left arm wave':  return this.leftArmWave(phase, intensity);
       case 'right arm wave': return this.rightArmWave(phase, intensity);
-      case 'both arms up': return this.bothArmsUp(phase, intensity);
-      case 'left step': return this.leftStep(phase, intensity);
-      case 'right step': return this.rightStep(phase, intensity);
-      case 'forward step': return this.forwardStep(phase, intensity);
-      case 'backward step': return this.backwardStep(phase, intensity);
-      case 'hip sway': return this.hipSway(phase, intensity);
-      case 'squat': return this.squat(phase, intensity);
-      case 'jump': return this.jump(phase, intensity);
-      case 'spin': return this.spin(phase, intensity);
-      case 'side groove': return this.sideGroove(phase, intensity);
-      case 'hands on hips': return this.handsOnHips(phase, intensity);
-      case 'final pose': return this.finalPose(phase, intensity);
+      case 'both arms up':   return this.bothArmsUp(phase, intensity);
+      case 'left step':      return this.leftStep(phase, intensity);
+      case 'right step':     return this.rightStep(phase, intensity);
+      case 'forward step':   return this.forwardStep(phase, intensity);
+      case 'backward step':  return this.backwardStep(phase, intensity);
+      case 'hip sway':       return this.hipSway(phase, intensity);
+      case 'squat':          return this.squat(phase, intensity);
+      case 'jump':           return this.jump(phase, intensity);
+      case 'spin':           return this.spin(phase, intensity);
+      case 'side groove':    return this.sideGroove(phase, intensity);
+      case 'hands on hips':  return this.handsOnHips(phase, intensity);
+      case 'final pose':     return this.finalPose(phase, intensity);
+      case 'running man':    return this.runningMan(phase, intensity);
+      case 'robot chop':     return this.robotChop(phase, intensity);
+      case 'chest pop':      return this.chestPop(phase, intensity);
+      case 'windmill arms':  return this.windmillArms(phase, intensity);
+      case 'bounce step':    return this.bounceStep(phase, intensity);
+      case 'lock groove':    return this.lockGroove(phase, intensity);
       case 'idle':
       default:
         return this.idle(phase, intensity);

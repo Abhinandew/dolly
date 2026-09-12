@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic, Square, Pause, Play, Maximize2, Minimize2, Music2, AlertCircle } from 'lucide-react';
+import { Mic, Square, Pause, Maximize2, Minimize2, Music2, AlertCircle } from 'lucide-react';
 import { useDolly } from '../context/DollyContext';
 import { SYNTH_TRACKS, SynthTrack } from '../audio/AudioSynthesizer';
 

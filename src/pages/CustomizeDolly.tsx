@@ -56,11 +56,11 @@ export const CustomizeDolly: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Real-time Live Preview */}
-        <div className="lg:col-span-5 glass-panel p-6 rounded-3xl flex flex-col items-center justify-center border border-white/10 sticky top-24">
+        <div className="lg:col-span-5 glass-panel p-6 rounded-3xl flex flex-col items-center justify-center border border-white/10 lg:sticky lg:top-24 mb-6 lg:mb-0">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Live Character Preview
           </div>
-          <div className="w-full h-[400px] flex items-center justify-center">
+          <div className="w-full h-[280px] sm:h-[400px] flex items-center justify-center">
             <DollyCanvas className="w-full h-full" />
           </div>
           <div className="text-[11px] text-slate-500 text-center mt-2">

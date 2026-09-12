@@ -82,7 +82,7 @@ export const App: React.FC = () => {
     <DollyProvider>
       <div className="relative min-h-screen bg-[#08090e] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
         <Navbar currentPath={currentPath} onNavigate={navigate} />
-        <main id="main-content" className="flex-1 w-full flex flex-col">{renderPage()}</main>
+        <main id="main-content" className="flex-1 w-full flex flex-col pb-20 md:pb-0">{renderPage()}</main>
       </div>
     </DollyProvider>
   );

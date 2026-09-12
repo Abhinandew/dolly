@@ -21,15 +21,15 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     audioAnalysisRef,
   } = useDolly();
 
-  // High-frequency animation loop access via stable refs (no React state in RAF)
   const appearanceRef = useRef(appearance);
-  appearanceRef.current = appearance;
-
   const showDebugRigRef = useRef(showDebugRig);
-  showDebugRigRef.current = showDebugRig;
-
   const isListeningRef = useRef(isListening);
-  isListeningRef.current = isListening;
+
+  useEffect(() => {
+    appearanceRef.current = appearance;
+    showDebugRigRef.current = showDebugRig;
+    isListeningRef.current = isListening;
+  }, [appearance, showDebugRig, isListening]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

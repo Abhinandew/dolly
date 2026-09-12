@@ -37,9 +37,12 @@ export const AdminStudio: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const currentTimeRef = useRef(currentTime);
-  currentTimeRef.current = currentTime;
   const isPlayingRef = useRef(isPlaying);
-  isPlayingRef.current = isPlaying;
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+    isPlayingRef.current = isPlaying;
+  }, [currentTime, isPlaying]);
 
   useEffect(() => {
     choreoPlayerRef.current.loadChoreography(choreo);
@@ -147,7 +150,7 @@ export const AdminStudio: React.FC = () => {
           setActiveKeyframeIndex(0);
           setCurrentTime(0);
         }
-      } catch (err) {
+      } catch (_err) {
         alert('Invalid Choreography JSON format');
       }
     };

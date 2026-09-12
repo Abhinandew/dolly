@@ -11,6 +11,7 @@ export interface AudioAnalysis {
   beatDetected: boolean; // Instantaneous beat onset flag
   beatIntensity: number; // 0.0 - 1.0 intensity of detected beat
   estimatedBPM: number;  // Real-time estimated tempo (e.g. 120)
+  bpmConfidence: number; // 0.0 - 1.0 confidence of the estimated tempo
   beatPhase: number;     // 0.0 - 1.0 phase within the current beat
   timestamp: number;     // High-resolution timestamp in ms
 }

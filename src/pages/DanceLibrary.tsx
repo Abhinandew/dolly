@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Play, Clock, Activity, Tag, Star, Search, Sparkles } from 'lucide-react';
+import { Flame, Play, Clock, Activity, Tag, Star, Search } from 'lucide-react';
 import { trendingDanceService, TrendingDanceItem, DanceCategory } from '../services/TrendingDanceService';
 import { useDolly } from '../context/DollyContext';
 

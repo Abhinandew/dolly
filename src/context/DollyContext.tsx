@@ -99,6 +99,7 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     beatDetected: false,
     beatIntensity: 0,
     estimatedBPM: 120,
+    bpmConfidence: 0,
     beatPhase: 0,
     timestamp: 0,
   });
@@ -114,16 +115,19 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const recognitionTimerRef = useRef<number | null>(null);
   const bpmSamplerRef = useRef<number | null>(null);
   const mockFailRef = useRef(mockFailRecognition);
-  mockFailRef.current = mockFailRecognition;
   const liveStateRef = useRef(liveState);
-  liveStateRef.current = liveState;
+
+  useEffect(() => {
+    mockFailRef.current = mockFailRecognition;
+    liveStateRef.current = liveState;
+  }, [mockFailRecognition, liveState]);
   const pendingEnergyStateRef = useRef<'low' | 'medium' | 'high' | null>(null);
 
   // Mirror of audioAnalysis kept in a ref so background intervals can read the
   // latest values without calling analyze() again (which would double-tick the BeatClock).
   const audioAnalysisRef = useRef<AudioAnalysis>({
     volume: 0, energy: 0, bassEnergy: 0, midEnergy: 0, trebleEnergy: 0,
-    beatDetected: false, beatIntensity: 0, estimatedBPM: 120, beatPhase: 0, timestamp: 0,
+    beatDetected: false, beatIntensity: 0, estimatedBPM: 120, bpmConfidence: 0, beatPhase: 0, timestamp: 0,
   });
 
   // Energy monitoring state (used for choreography switching)
@@ -252,7 +256,7 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             // Read from the cached ref — avoids double-ticking the BeatClock
             // (the telemetry loop already calls analyze() at 10 FPS).
             const analysis = audioAnalysisRef.current;
-            if (analysis.estimatedBPM > 0) {
+            if (analysis.estimatedBPM > 0 && analysis.bpmConfidence > 0.3) {
               bpmSamples.push(analysis.estimatedBPM);
             }
             energySamples.push(analysis.energy);
@@ -557,6 +561,9 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Cleanup on unmount
   useEffect(() => {
+    const analyzer = audioAnalyzerRef.current;
+    const synth = audioSynthRef.current;
+    const player = choreoPlayerRef.current;
     return () => {
       if (recognitionTimerRef.current) {
         clearTimeout(recognitionTimerRef.current);
@@ -564,9 +571,9 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (bpmSamplerRef.current) {
         clearInterval(bpmSamplerRef.current);
       }
-      audioAnalyzerRef.current.stop();
-      audioSynthRef.current.stop();
-      choreoPlayerRef.current.stop();
+      analyzer.stop();
+      synth.stop();
+      player.stop();
     };
   }, []);
 

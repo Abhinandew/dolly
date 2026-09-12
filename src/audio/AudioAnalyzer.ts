@@ -41,6 +41,7 @@ export class AudioAnalyzer {
     beatDetected: false,
     beatIntensity: 0,
     estimatedBPM: 120,
+    bpmConfidence: 0,
     beatPhase: 0,
     timestamp: 0,
   };
@@ -241,6 +242,7 @@ export class AudioAnalyzer {
     out.trebleEnergy = this.smoothedTreble;
     out.beatDetected = beatResult.isBeat;
     out.beatIntensity = beatResult.intensity;
+    out.bpmConfidence = beatResult.confidence;
 
     return out;
   }

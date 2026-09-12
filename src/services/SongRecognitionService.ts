@@ -38,7 +38,7 @@ export class MockSongRecognitionService implements SongRecognitionService {
   /**
    * Identify song from audio stream
    */
-  public async identify(audioData?: Float32Array): Promise<RecognizedSong | null> {
+  public async identify(_audioData?: Float32Array): Promise<RecognizedSong | null> {
     if (this.isIdentifying) return null;
     this.isIdentifying = true;
 

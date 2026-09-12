@@ -16,7 +16,7 @@ export class BeatDetector {
   private decayRate: number = 0.95;
   private dynamicThreshold: number = 0.15;
   private estimatedBpm: number = 120;
-  private confidence: number = 0.5;
+  private confidence: number = 0.0;
 
   /**
    * Process a single audio frame
@@ -116,6 +116,6 @@ export class BeatDetector {
     this.lastBeatTime = 0;
     this.dynamicThreshold = 0.15;
     this.estimatedBpm = 120;
-    this.confidence = 0.5;
+    this.confidence = 0.0;
   }
 }

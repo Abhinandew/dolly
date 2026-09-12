@@ -71,6 +71,9 @@ export class DollyRenderer {
     // 4. Render the continuous, seamless character silhouette with organic bending
     this.drawContinuousBody(landmarks, appearance, baseScale, chubbiness);
 
+    // 4.5 Render cute face
+    this.drawFace(landmarks, baseScale);
+
     // 5. Render accessories & outfits layered naturally
     this.drawOutfitAndAccessories(landmarks, appearance, baseScale, chubbiness);
 
@@ -324,6 +327,46 @@ export class DollyRenderer {
     const headR = lm.head.radius * (appearance.proportions.headScale || 1.0);
     ctx.beginPath();
     ctx.arc(lm.head.x, lm.head.y, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /**
+   * Render a cute face on Dolly
+   */
+  private drawFace(lm: RigLandmarks, scale: number): void {
+    const ctx = this.ctx;
+    
+    ctx.save();
+    ctx.fillStyle = '#1e293b'; // Dark slate for facial features
+    ctx.lineWidth = 2.5 * scale;
+    ctx.lineCap = 'round';
+
+    // Face rotation logic - look slightly up and forward
+    const faceOffsetY = -3 * scale;
+    const eyeSpacing = 16 * scale;
+    const eyeSize = 3.5 * scale;
+
+    // Eyes
+    ctx.beginPath();
+    ctx.arc(lm.head.x - eyeSpacing * 0.5, lm.head.y + faceOffsetY, eyeSize, 0, Math.PI * 2);
+    ctx.arc(lm.head.x + eyeSpacing * 0.5, lm.head.y + faceOffsetY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cute small curved smile
+    ctx.beginPath();
+    ctx.strokeStyle = '#1e293b';
+    const mouthY = lm.head.y + faceOffsetY + 8 * scale;
+    ctx.moveTo(lm.head.x - 4 * scale, mouthY - 1 * scale);
+    ctx.quadraticCurveTo(lm.head.x, mouthY + 3 * scale, lm.head.x + 4 * scale, mouthY - 1 * scale);
+    ctx.stroke();
+    
+    // Tiny blush cheeks
+    ctx.fillStyle = 'rgba(244, 114, 182, 0.4)'; // Soft pink
+    ctx.beginPath();
+    ctx.arc(lm.head.x - eyeSpacing * 0.75, lm.head.y + faceOffsetY + 4 * scale, 5 * scale, 0, Math.PI * 2);
+    ctx.arc(lm.head.x + eyeSpacing * 0.75, lm.head.y + faceOffsetY + 4 * scale, 5 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();

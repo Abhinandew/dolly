@@ -120,4 +120,10 @@ export type MovementType =
   | 'spin'
   | 'side groove'
   | 'hands on hips'
-  | 'final pose';
+  | 'final pose'
+  | 'running man'
+  | 'robot chop'
+  | 'chest pop'
+  | 'windmill arms'
+  | 'bounce step'
+  | 'lock groove';

@@ -19,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPath, onNaviga
   ];
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between glass-panel border-b border-white/5">
       {/* Skip to main content — accessibility */}
       <a
@@ -101,5 +102,26 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPath, onNaviga
         </button>
       </div>
     </header>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-white/5 flex items-center justify-around px-2 pb-safe shadow-2xl">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPath === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => onNavigate(item.path)}
+              className={`flex flex-col items-center gap-1 py-3 px-1 flex-1 transition-colors ${
+                isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : ''}`} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 });
