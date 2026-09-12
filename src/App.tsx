@@ -11,6 +11,7 @@ const CustomizeDolly = lazy(() =>
 const Settings = lazy(() =>
   import('./pages/Settings').then((module) => ({ default: module.Settings }))
 );
+import { NotFound } from './pages/NotFound';
 
 const PageLoader: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3 text-slate-400">
@@ -54,9 +55,9 @@ export const App: React.FC = () => {
           </Suspense>
         );
       case '/':
-      default:
-        // Home is eagerly loaded for instant display
         return <Home />;
+      default:
+        return <NotFound onNavigateHome={() => navigate('/')} />;
     }
   };
 
