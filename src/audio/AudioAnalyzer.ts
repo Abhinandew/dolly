@@ -22,6 +22,7 @@ export class AudioAnalyzer {
   private freqData: Uint8Array | null = null;
   private timeData: Uint8Array | null = null;
   private isListening: boolean = false;
+  private ownsContext: boolean = false;
   private sensitivity: number = 1.0;
 
   // Smoothing states
@@ -55,7 +56,10 @@ export class AudioAnalyzer {
    * MUST be triggered by a direct user gesture.
    */
   public async startMicrophone(): Promise<void> {
-    if (this.isListening) return;
+    // If we already own a microphone context, nothing to do
+    if (this.isListening && this.ownsContext) return;
+    // Otherwise tear down any active (externally-connected) session first
+    if (this.isListening) this.stop();
 
     try {
       // 1. Request microphone access
@@ -90,6 +94,7 @@ export class AudioAnalyzer {
       this.timeData = new Uint8Array(new ArrayBuffer(bufferLength));
 
       this.isListening = true;
+      this.ownsContext = true;
       this.beatDetector.reset();
       this.beatClock.reset();
     } catch (err) {
@@ -102,7 +107,25 @@ export class AudioAnalyzer {
    * Connect an external audio element or custom audio node (e.g. for synthesizer demo tracks)
    */
   public connectAudioNode(node: AudioNode, ctx: AudioContext): void {
+    // Stop and release any existing microphone stream before taking over
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream = null;
+    }
+    if (this.analyser) {
+      try {
+        this.analyser.disconnect();
+      } catch {
+        // Node may already be disconnected
+      }
+    }
+    if (this.sourceNode) {
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+
     this.audioCtx = ctx;
+    this.ownsContext = false;
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 512;
     this.analyser.smoothingTimeConstant = 0.65;
@@ -123,13 +146,14 @@ export class AudioAnalyzer {
    * Fast, zero-allocation calculations.
    */
   public analyze(now: number = performance.now()): AudioAnalysis {
-    const clockUpdate = this.beatClock.update(now);
     const out = this.cachedAnalysis;
     out.timestamp = now;
-    out.beatPhase = clockUpdate.phase;
-    out.estimatedBPM = this.beatClock.getBpm();
 
     if (!this.isListening || !this.analyser || !this.freqData || !this.timeData) {
+      // Still advance the clock so beat phase stays coherent when listening resumes
+      const clockUpdate = this.beatClock.update(now);
+      out.beatPhase = clockUpdate.phase;
+      out.estimatedBPM = this.beatClock.getBpm();
       out.volume = 0;
       out.energy = 0;
       out.bassEnergy = 0;
@@ -140,13 +164,28 @@ export class AudioAnalyzer {
       return out;
     }
 
-    this.analyser.getByteFrequencyData(
-  this.freqData as unknown as Uint8Array<ArrayBuffer>
-);
+    // Only tick the clock when we are actually processing audio
+    const clockUpdate = this.beatClock.update(now);
+    out.beatPhase = clockUpdate.phase;
+    out.estimatedBPM = this.beatClock.getBpm();
 
-this.analyser.getByteTimeDomainData(
-  this.timeData as unknown as Uint8Array<ArrayBuffer>
-);
+    try {
+      this.analyser.getByteFrequencyData(
+        this.freqData as unknown as Uint8Array<ArrayBuffer>
+      );
+      this.analyser.getByteTimeDomainData(
+        this.timeData as unknown as Uint8Array<ArrayBuffer>
+      );
+    } catch {
+      out.volume = 0;
+      out.energy = 0;
+      out.bassEnergy = 0;
+      out.midEnergy = 0;
+      out.trebleEnergy = 0;
+      out.beatDetected = false;
+      out.beatIntensity = 0;
+      return out;
+    }
 
     const binCount = this.analyser.frequencyBinCount;
     const sampleRate = this.audioCtx ? this.audioCtx.sampleRate : 44100;
@@ -190,6 +229,7 @@ this.analyser.getByteTimeDomainData(
     const beatResult = this.beatDetector.process(rawBass, rawEnergy, now);
 
     if (beatResult.isBeat) {
+      // Sync phase first (uses current BPM), then update tempo
       this.beatClock.syncToBeatOnset(beatResult.intensity);
       this.beatClock.setBpm(beatResult.bpm);
     }
@@ -230,11 +270,21 @@ this.analyser.getByteTimeDomainData(
       this.sourceNode.disconnect();
       this.sourceNode = null;
     }
-    if (this.audioCtx && this.audioCtx.state !== 'closed') {
-      this.audioCtx.close();
-      this.audioCtx = null;
+    if (this.analyser) {
+      try {
+        this.analyser.disconnect();
+      } catch {
+        // Node may already be disconnected
+      }
+      this.analyser = null;
     }
-    this.analyser = null;
+    if (this.ownsContext && this.audioCtx && this.audioCtx.state !== 'closed') {
+      this.audioCtx.close().catch(() => {
+        // Ignore close errors (context may have already been released)
+      });
+    }
+    this.audioCtx = null;
+    this.ownsContext = false;
     this.freqData = null;
     this.timeData = null;
     this.isListening = false;
