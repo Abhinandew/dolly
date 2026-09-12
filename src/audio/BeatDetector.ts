@@ -48,10 +48,15 @@ export class BeatDetector {
     const variance = this.energyHistory.reduce((acc, val) => acc + Math.pow(val - avgEnergy, 2), 0) / this.energyHistory.length;
     // Higher variance = higher threshold multiplier
     const cMultiplier = Math.max(1.15, Math.min(1.5, 1.3 + Math.sqrt(variance) * 0.8));
-    const targetThreshold = Math.max(avgEnergy * cMultiplier, 0.08);
+    // Floor only applies when there is meaningful signal — in silence the
+    // threshold should decay freely so it doesn't trigger on noise.
+    const silenceFloor = avgEnergy > 0.05 ? 0.08 : 0.0;
+    const targetThreshold = Math.max(avgEnergy * cMultiplier, silenceFloor);
 
-    // Smooth dynamic threshold
-    this.dynamicThreshold = Math.max(targetThreshold, this.dynamicThreshold * this.decayRate);
+    // Decay first, then raise to target if energy is surging.
+    // This allows the threshold to fall back down after a loud section ends.
+    const decayed = this.dynamicThreshold * this.decayRate;
+    this.dynamicThreshold = Math.max(targetThreshold, decayed);
 
     const timeSinceLastBeat = now - this.lastBeatTime;
     let isBeat = false;
@@ -80,10 +85,10 @@ export class BeatDetector {
           const medianInterval = sorted[Math.floor(sorted.length / 2)];
           const rawBpm = Math.round(60000 / medianInterval);
 
-          // Constrain to normal dance BPM range (65 - 180)
+          // Fold octave errors into a danceable range (65 - 180)
           let normalizedBpm = rawBpm;
-          if (normalizedBpm < 65) normalizedBpm *= 2;
-          if (normalizedBpm > 180) normalizedBpm /= 2;
+          while (normalizedBpm < 65) normalizedBpm *= 2;
+          while (normalizedBpm > 180) normalizedBpm /= 2;
 
           // Smooth BPM updates without jitter
           this.estimatedBpm = Math.round(this.estimatedBpm * 0.7 + normalizedBpm * 0.3);

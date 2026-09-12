@@ -43,6 +43,7 @@ export class ChoreographyPlayer {
     this.isPlaying = false;
     this.currentTime = 0;
     this.targetBlendWeight = 0;
+    this.blendWeight = 0;
   }
 
   public seek(timeInSeconds: number): void {

@@ -9,7 +9,7 @@ import { DanceEngine } from '../dance/DanceEngine';
 import { ChoreographyPlayer } from '../dance/ChoreographyPlayer';
 import { MockSongRecognitionService } from '../services/SongRecognitionService';
 import { trendingDanceService } from '../services/TrendingDanceService';
-import { PRESET_SONGS, CHOREO_BY_BPM } from '../services/presetDances';
+import { PRESET_SONGS, CHOREO_BY_BPM, matchSongByBpm } from '../services/presetDances';
 
 export type DollyLiveState =
   | 'waiting'        // State 1: "Dolly is waiting..."
@@ -110,6 +110,19 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Recognition timer handle
   const recognitionTimerRef = useRef<number | null>(null);
+  const bpmSamplerRef = useRef<number | null>(null);
+  const mockFailRef = useRef(mockFailRecognition);
+  mockFailRef.current = mockFailRecognition;
+  const liveStateRef = useRef(liveState);
+  liveStateRef.current = liveState;
+  const pendingEnergyStateRef = useRef<'low' | 'medium' | 'high' | null>(null);
+
+  // Mirror of audioAnalysis kept in a ref so background intervals can read the
+  // latest values without calling analyze() again (which would double-tick the BeatClock).
+  const audioAnalysisRef = useRef<AudioAnalysis>({
+    volume: 0, energy: 0, bassEnergy: 0, midEnergy: 0, trebleEnergy: 0,
+    beatDetected: false, beatIntensity: 0, estimatedBPM: 120, beatPhase: 0, timestamp: 0,
+  });
 
   // Energy monitoring state (used for choreography switching)
   const smoothedEnergyRef     = useRef<number>(0);
@@ -189,6 +202,10 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (recognitionTimerRef.current) {
       clearTimeout(recognitionTimerRef.current);
     }
+    if (bpmSamplerRef.current) {
+      clearInterval(bpmSamplerRef.current);
+      bpmSamplerRef.current = null;
+    }
 
     // Start in pure listening/random-dance state — no choreography loaded yet
     setLiveState('listening');
@@ -200,63 +217,77 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       recognitionServiceRef.current.setForcedSongId(null);
     }
 
+    const scheduleRetry = () => {
+      setLiveState('listening');
+      recognitionTimerRef.current = window.setTimeout(() => {
+        triggerRecognitionFlow();
+      }, 5000);
+    };
+
     // After 3s of listening, attempt BPM-based song matching
     recognitionTimerRef.current = window.setTimeout(async () => {
+      if (!audioAnalyzerRef.current.isActive()) return;
       setLiveState('finding_song');
 
       try {
-        // Sample BPM over 2 seconds (20 samples × 100ms)
+        if (mockFailRef.current) {
+          await recognitionServiceRef.current.identify();
+          scheduleRetry();
+          return;
+        }
+
         const bpmSamples: number[] = [];
+        const energySamples: number[] = [];
         await new Promise<void>((resolve) => {
           let count = 0;
-          const sampler = setInterval(() => {
-            const analysis = audioAnalyzerRef.current.analyze(performance.now());
+          bpmSamplerRef.current = window.setInterval(() => {
+            if (!audioAnalyzerRef.current.isActive()) {
+              if (bpmSamplerRef.current) clearInterval(bpmSamplerRef.current);
+              bpmSamplerRef.current = null;
+              resolve();
+              return;
+            }
+            // Read from the cached ref — avoids double-ticking the BeatClock
+            // (the telemetry loop already calls analyze() at 10 FPS).
+            const analysis = audioAnalysisRef.current;
             if (analysis.estimatedBPM > 0) {
               bpmSamples.push(analysis.estimatedBPM);
             }
+            energySamples.push(analysis.energy);
             count++;
             if (count >= 20) {
-              clearInterval(sampler);
+              if (bpmSamplerRef.current) clearInterval(bpmSamplerRef.current);
+              bpmSamplerRef.current = null;
               resolve();
             }
           }, 100);
         });
 
-        // Calculate median BPM for stability
-        bpmSamples.sort((a, b) => a - b);
-        const medianBpm = bpmSamples[Math.floor(bpmSamples.length / 2)] ?? 0;
+        if (!audioAnalyzerRef.current.isActive()) return;
 
-        // Find the closest matching song within ±12 BPM tolerance
-        // Also check half-time and double-time variants (common in detection)
-        let bestMatch: typeof PRESET_SONGS[0] | null = null;
-        let bestDiff = Infinity;
-
-        for (const song of PRESET_SONGS) {
-          if (!song.danceId) continue;
-          const diffs = [
-            Math.abs(medianBpm - song.bpm),
-            Math.abs(medianBpm - song.bpm * 2),
-            Math.abs(medianBpm - song.bpm / 2),
-          ];
-          const minDiff = Math.min(...diffs);
-          if (minDiff < 12 && minDiff < bestDiff) {
-            bestDiff = minDiff;
-            bestMatch = song;
-          }
+        const avgEnergy =
+          energySamples.reduce((sum, v) => sum + v, 0) / Math.max(1, energySamples.length);
+        if (energySamples.length === 0 || avgEnergy < 0.06) {
+          scheduleRetry();
+          return;
         }
 
-        if (bestMatch) {
-          const choreo = await trendingDanceService.getChoreographyById(bestMatch.danceId!);
+        bpmSamples.sort((a, b) => a - b);
+        const medianBpm = bpmSamples[Math.floor(bpmSamples.length / 2)] ?? 0;
+        const bestMatch = matchSongByBpm(medianBpm, PRESET_SONGS, 12);
+
+        if (bestMatch?.danceId) {
+          const choreo = await trendingDanceService.getChoreographyById(bestMatch.danceId);
           if (choreo) {
-            // Track index in CHOREO_BY_BPM for energy-based switching
-            activeChoreoIndexRef.current = CHOREO_BY_BPM.findIndex(c => c.danceId === choreo.danceId);
+            const directDiff = Math.abs(medianBpm - bestMatch.bpm);
+            activeChoreoIndexRef.current = CHOREO_BY_BPM.findIndex((c) => c.danceId === choreo.danceId);
             setRecognizedSong({
               songId: bestMatch.songId,
               title: bestMatch.title,
               artist: bestMatch.artist,
               bpm: bestMatch.bpm,
               danceId: bestMatch.danceId,
-              confidence: Math.max(0.5, 1 - bestDiff / 12),
+              confidence: Math.max(0.5, 1 - Math.min(directDiff, 12) / 12),
               isMock: true,
             });
             setActiveChoreography(choreo);
@@ -274,12 +305,7 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
 
-        // No BPM match found — keep random dancing, retry after 5s
-        setLiveState('listening');
-        recognitionTimerRef.current = window.setTimeout(() => {
-          triggerRecognitionFlow();
-        }, 5000);
-
+        scheduleRetry();
       } catch (err) {
         console.warn('[Dolly] Recognition error, continuing random dancing:', err);
         setLiveState('listening');
@@ -389,19 +415,31 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const pauseAudio = useCallback(() => {
-    if (audioSynthRef.current.getIsPlaying()) {
-      audioSynthRef.current.stop();
+    if (recognitionTimerRef.current) {
+      clearTimeout(recognitionTimerRef.current);
     }
+    if (bpmSamplerRef.current) {
+      clearInterval(bpmSamplerRef.current);
+      bpmSamplerRef.current = null;
+    }
+    audioAnalyzerRef.current.stop();
+    audioSynthRef.current.stop();
     if (choreoPlayerRef.current.getState(0).isPlaying) {
       choreoPlayerRef.current.pause();
     }
     setIsListening(false);
+    setActiveSource('none');
+    setActiveSynthTrack(null);
     setLiveState('waiting');
   }, []);
 
   const stopAudio = useCallback(() => {
     if (recognitionTimerRef.current) {
       clearTimeout(recognitionTimerRef.current);
+    }
+    if (bpmSamplerRef.current) {
+      clearInterval(bpmSamplerRef.current);
+      bpmSamplerRef.current = null;
     }
     if (energyHoldTimerRef.current) {
       clearTimeout(energyHoldTimerRef.current);
@@ -454,10 +492,12 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const interval = setInterval(() => {
       if (!audioAnalyzerRef.current.isActive()) return;
+      if (liveStateRef.current !== 'dancing') return;
 
-      const a = audioAnalyzerRef.current.analyze(performance.now());
+      // Read from the cached ref — avoids double-ticking the BeatClock
+      // (the telemetry loop is the sole caller of analyze()).
+      const a = audioAnalysisRef.current;
 
-      // Exponential moving average for stable energy reading
       smoothedEnergyRef.current =
         smoothedEnergyRef.current * (1 - SMOOTH_FACTOR) + a.energy * SMOOTH_FACTOR;
 
@@ -465,25 +505,32 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const newState: 'low' | 'medium' | 'high' =
         e < LOW_THRESHOLD ? 'low' : e > HIGH_THRESHOLD ? 'high' : 'medium';
 
-      if (newState !== energyStateRef.current) {
-        // Energy state changed — start hold timer before committing
+      if (newState === energyStateRef.current) {
         if (energyHoldTimerRef.current) clearTimeout(energyHoldTimerRef.current);
-
-        energyHoldTimerRef.current = window.setTimeout(() => {
-          // Confirm the state still holds after HOLD_MS
-          const ec = smoothedEnergyRef.current;
-          const confirmed: 'low' | 'medium' | 'high' =
-            ec < LOW_THRESHOLD ? 'low' : ec > HIGH_THRESHOLD ? 'high' : 'medium';
-
-          if (confirmed !== energyStateRef.current) {
-            const prevRank = energyStateRef.current === 'low' ? 0 : energyStateRef.current === 'medium' ? 1 : 2;
-            const nextRank = confirmed === 'low' ? 0 : confirmed === 'medium' ? 1 : 2;
-            energyStateRef.current = confirmed;
-            if (nextRank < prevRank) switchChoreography('calmer');
-            else if (nextRank > prevRank) switchChoreography('hype');
-          }
-        }, HOLD_MS);
+        pendingEnergyStateRef.current = null;
+        return;
       }
+
+      // Only arm the hold timer when the candidate state first changes
+      if (pendingEnergyStateRef.current === newState) return;
+
+      pendingEnergyStateRef.current = newState;
+      if (energyHoldTimerRef.current) clearTimeout(energyHoldTimerRef.current);
+
+      energyHoldTimerRef.current = window.setTimeout(() => {
+        const ec = smoothedEnergyRef.current;
+        const confirmed: 'low' | 'medium' | 'high' =
+          ec < LOW_THRESHOLD ? 'low' : ec > HIGH_THRESHOLD ? 'high' : 'medium';
+
+        pendingEnergyStateRef.current = null;
+        if (confirmed !== energyStateRef.current) {
+          const prevRank = energyStateRef.current === 'low' ? 0 : energyStateRef.current === 'medium' ? 1 : 2;
+          const nextRank = confirmed === 'low' ? 0 : confirmed === 'medium' ? 1 : 2;
+          energyStateRef.current = confirmed;
+          if (nextRank < prevRank) switchChoreography('calmer');
+          else if (nextRank > prevRank) switchChoreography('hype');
+        }
+      }, HOLD_MS);
     }, TICK_MS);
 
     return () => {
@@ -497,7 +544,7 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const interval = setInterval(() => {
       if (audioAnalyzerRef.current.isActive()) {
         const a = audioAnalyzerRef.current.analyze(performance.now());
-        setAudioAnalysis({
+        const snapshot: AudioAnalysis = {
           volume: a.volume,
           energy: a.energy,
           bassEnergy: a.bassEnergy,
@@ -508,7 +555,9 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           estimatedBPM: a.estimatedBPM,
           beatPhase: a.beatPhase,
           timestamp: a.timestamp,
-        });
+        };
+        audioAnalysisRef.current = snapshot;
+        setAudioAnalysis(snapshot);
       }
     }, 100);
 
@@ -520,6 +569,9 @@ export const DollyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       if (recognitionTimerRef.current) {
         clearTimeout(recognitionTimerRef.current);
+      }
+      if (bpmSamplerRef.current) {
+        clearInterval(bpmSamplerRef.current);
       }
       audioAnalyzerRef.current.stop();
       audioSynthRef.current.stop();

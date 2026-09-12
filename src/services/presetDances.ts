@@ -437,3 +437,52 @@ export const PRESET_CHOREOGRAPHIES: Choreography[] = [
 // BPM → choreography lookup sorted by BPM for fast range queries
 // ─────────────────────────────────────────────────────────────────────────────
 export const CHOREO_BY_BPM = [...PRESET_CHOREOGRAPHIES].sort((a, b) => a.bpm - b.bpm);
+
+/**
+ * Pick the closest catalog song for a detected tempo.
+ * Direct BPM matches always beat half-time / double-time aliases, so a 120 BPM
+ * track is not assigned the 60 BPM ballad just because 60*2 === 120.
+ *
+ * Scoring rules:
+ *  - direct match within tolerance → score = direct difference (0–tolerance)
+ *  - octave alias within tolerance → score = octave difference + tolerance (tolerance–2*tolerance)
+ *  - nothing within tolerance      → no match (returns null)
+ */
+export function matchSongByBpm(
+  medianBpm: number,
+  songs: Song[] = PRESET_SONGS,
+  tolerance: number = 12
+): Song | null {
+  if (!(medianBpm > 0)) return null;
+
+  let bestMatch: Song | null = null;
+  let bestScore = Infinity;
+
+  for (const song of songs) {
+    if (!song.danceId) continue;
+
+    const direct = Math.abs(medianBpm - song.bpm);
+
+    // Only consider octave aliases where the alias itself lands within tolerance
+    const doubleTime = Math.abs(medianBpm - song.bpm * 2);
+    const halfTime   = Math.abs(medianBpm - song.bpm / 2);
+    const octave = Math.min(doubleTime, halfTime);
+
+    let score: number;
+    if (direct <= tolerance) {
+      score = direct;                  // 0 … tolerance   (best tier)
+    } else if (octave <= tolerance) {
+      score = octave + tolerance;      // tolerance … 2*tolerance (fallback tier)
+    } else {
+      continue;                        // outside all tolerance bands — skip entirely
+    }
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestMatch = song;
+    }
+  }
+
+  // If nothing scored, return null explicitly (bestMatch may still be null here)
+  return bestScore < Infinity ? bestMatch : null;
+}

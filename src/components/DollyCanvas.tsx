@@ -43,61 +43,58 @@ export const DollyCanvas: React.FC<DollyCanvasProps> = memo(({ className = '' })
     let animationFrameId: number;
     let lastTime = performance.now();
 
-    // High performance 60 FPS Render Loop with ZERO allocations
+    const cssSizeRef = { w: 0, h: 0 };
+
     const renderLoop = (time: number) => {
       const deltaTime = Math.max(1, Math.min(100, time - lastTime));
       lastTime = time;
 
-      // 1. Fetch real-time audio analysis
       const audio = audioAnalyzerRef.current.analyze(time);
 
-      // 2. Procedural movement generation
       const proceduralPose = danceEngineRef.current.update(
         audio,
         isListeningRef.current,
         deltaTime
       );
 
-      // 3. Choreography player interpolation & crossfade blend
       const { pose } = choreoPlayerRef.current.update(proceduralPose, time);
 
-      // 4. Render the seamless character
-      if (rendererRef.current && canvas) {
+      if (rendererRef.current && canvas && cssSizeRef.w > 0 && cssSizeRef.h > 0) {
         rendererRef.current.showDebugRig = showDebugRigRef.current;
         rendererRef.current.render(
           pose,
           appearanceRef.current,
           audio.beatIntensity,
-          canvas.width,
-          canvas.height
+          cssSizeRef.w,
+          cssSizeRef.h
         );
       }
 
       animationFrameId = requestAnimationFrame(renderLoop);
     };
 
-    // Mobile-optimized Resize Handler with GPU fill-rate protection
     const handleResize = () => {
       if (!canvas || !container) return;
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
 
-      // Clamp DPR to 1.5 on mobile to avoid excessive fill-rate overhead
       const maxDpr = window.innerWidth < 768 ? 1.5 : 2.0;
       const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
 
       const targetW = Math.floor(rect.width * dpr);
       const targetH = Math.floor(rect.height * dpr);
+      cssSizeRef.w = rect.width;
+      cssSizeRef.h = rect.height;
 
       if (canvas.width !== targetW || canvas.height !== targetH) {
         canvas.width = targetW;
         canvas.height = targetH;
         canvas.style.width = `${rect.width}px`;
         canvas.style.height = `${rect.height}px`;
+      }
 
-        if (ctx) {
-          ctx.scale(dpr, dpr);
-        }
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
     };
 

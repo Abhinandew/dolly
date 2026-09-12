@@ -16,9 +16,10 @@ export class PoseBlender {
    * Fast angle interpolation taking shortest angular distance
    */
   public static lerpAngle(a: number, b: number, t: number): number {
-    let diff = (b - a) % (Math.PI * 2);
-    if (diff < -Math.PI) diff += Math.PI * 2;
-    if (diff > Math.PI) diff -= Math.PI * 2;
+    const twoPi = Math.PI * 2;
+    // JS remainder keeps the dividend's sign; normalize into (-π, π]
+    let diff = ((b - a) % twoPi + twoPi) % twoPi;
+    if (diff > Math.PI) diff -= twoPi;
     const clampedT = t < 0 ? 0 : t > 1 ? 1 : t;
     return a + diff * clampedT;
   }

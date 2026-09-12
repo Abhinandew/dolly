@@ -4,7 +4,7 @@ import { PoseBlender } from '../dance/PoseBlender';
 import { ChoreographyPlayer } from '../dance/ChoreographyPlayer';
 import { BeatDetector } from '../audio/BeatDetector';
 import { BeatClock } from '../audio/BeatClock';
-import { PRESET_CHOREOGRAPHIES, PRESET_SONGS } from '../services/presetDances';
+import { PRESET_CHOREOGRAPHIES, matchSongByBpm } from '../services/presetDances';
 import { TrendingDanceService } from '../services/TrendingDanceService';
 import { MockSongRecognitionService } from '../services/SongRecognitionService';
 import { MovementType } from '../types/pose';
@@ -79,6 +79,18 @@ function runTests() {
   const angleBlend = PoseBlender.lerpAngle(Math.PI * 0.9, -Math.PI * 0.9, 0.5);
   assert(Math.abs(Math.abs(angleBlend) - Math.PI) < 0.001, 'Angular interpolation handles wrap-around smoothly');
 
+  const wrapNeg = PoseBlender.lerpAngle(0.1, -0.1, 0.5);
+  assert(Math.abs(wrapNeg) < 0.001, 'Angular interpolation stays on the short arc across 0');
+
+  console.log('\n[3b] Testing BPM song matching:');
+  const match120 = matchSongByBpm(120);
+  assert(match120?.bpm === 120, '120 BPM prefers the 120 BPM song over 60 BPM double-time');
+  const match60 = matchSongByBpm(60);
+  assert(match60?.bpm === 60, '60 BPM prefers the 60 BPM song over 120 BPM half-time');
+  const match128 = matchSongByBpm(128);
+  assert(match128?.bpm === 128, 'Exact catalog BPM maps to the matching song');
+  assert(matchSongByBpm(0) === null, 'Zero BPM does not force a false match');
+
   // 4. ChoreographyPlayer Tests
   console.log('\n[4] Testing ChoreographyPlayer:');
   const player = new ChoreographyPlayer();
@@ -119,9 +131,12 @@ function runTests() {
   recog.setLatency(10);
   assert(!recog.isRealService(), 'Correctly reports service as mock/emulated');
 
+  // A forcedSongId must be set — without it the service intentionally returns null
+  // (it has no audio fingerprinting and won't fake a random match from mic input).
+  recog.setForcedSongId('song_retro_disco');
   recog.identify().then((song) => {
-    assert(song !== null && song.isMock, 'Mock recognition returned recognized song item');
-    assert(song?.bpm !== undefined && song?.bpm > 0, 'Recognized song includes valid BPM');
+    assert(song !== null && song.isMock === true, 'Mock recognition returned recognized song item');
+    assert(song?.bpm !== undefined && song.bpm > 0, 'Recognized song includes valid BPM');
 
     // Test failure mode
     recog.setShouldFail(true);

@@ -190,6 +190,9 @@ export class DanceEngine {
     this.currentPose = createNeutralPose();
     this.targetPose = createNeutralPose();
     this.currentBeatCount = 0;
-    this.primaryMovement = 'idle';
+    this.currentGrooveIndex = Math.floor(Math.random() * this.grooveSets.length);
+    const set = this.grooveSets[this.currentGrooveIndex];
+    this.primaryMovement = set.primary;
+    this.secondaryMovement = set.secondary;
   }
 }

@@ -36,32 +36,32 @@ export const AdminStudio: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync with ChoreographyPlayer
+  const currentTimeRef = useRef(currentTime);
+  currentTimeRef.current = currentTime;
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+
   useEffect(() => {
     choreoPlayerRef.current.loadChoreography(choreo);
+    choreoPlayerRef.current.seek(currentTimeRef.current);
+    if (isPlayingRef.current) {
+      choreoPlayerRef.current.play(false);
+    }
   }, [choreo, choreoPlayerRef]);
 
-  // Scrubbing / Playback loop in editor
   useEffect(() => {
     let animId: number;
-    let lastTime = performance.now();
 
-    const loop = (now: number) => {
-      if (isPlaying) {
-        const delta = (now - lastTime) * 0.001;
-        setCurrentTime((prev) => {
-          const next = (prev + delta) % choreo.duration;
-          choreoPlayerRef.current.seek(next);
-          return next;
-        });
+    const loop = () => {
+      if (isPlayingRef.current) {
+        setCurrentTime(choreoPlayerRef.current.getCurrentTime());
       }
-      lastTime = now;
       animId = requestAnimationFrame(loop);
     };
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [isPlaying, choreo.duration, choreoPlayerRef]);
+  }, [choreoPlayerRef]);
 
   const activeKeyframe = choreo.keyframes[activeKeyframeIndex] || choreo.keyframes[0];
 
