@@ -132,4 +132,16 @@ export type MovementType =
   | 'criss cross'
   | 'arm slash'
   | 'stomp'
-  | 'groove pulse';
+  | 'groove pulse'
+  | 'bboy freeze'
+  | 'windmill spin'
+  | 'worm wave'
+  | 'moonwalk'
+  | 'floss'
+  | 'dab'
+  | 'twerk bounce'
+  | 'arabesque'
+  | 'ballet releve'
+  | 'tutting'
+  | 'matrix lean'
+  | 'power slide';

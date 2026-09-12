@@ -2,20 +2,40 @@
  * Dolly Appearance and Customization Types
  */
 
-export type OutfitType = 'none' | 'hoodie' | 'suspenders' | 'bowtie' | 'athletic';
-export type AccessoryType = 'none' | 'headphones' | 'cool_shades' | 'party_visor' | 'top_hat' | 'halo';
+export type OutfitType =
+  | 'none'
+  | 'hoodie'
+  | 'suspenders'
+  | 'bowtie'
+  | 'athletic'
+  | 'cape'
+  | 'tracksuit';
+
+export type AccessoryType =
+  | 'none'
+  | 'headphones'
+  | 'cool_shades'
+  | 'party_visor'
+  | 'top_hat'
+  | 'halo'
+  | 'crown'
+  | 'cat_ears'
+  | 'devil_horns'
+  | 'flower_crown'
+  | 'ninja_band'
+  | 'star_glasses';
 
 export interface DollyAppearance {
-  bodyColor: string;          // Hex color (default: #FFFFFF)
-  accentColor: string;        // Hex color (default: #6366F1)
-  glowColor: string;          // Glow color around Dolly
-  glowIntensity: number;      // 0.0 to 1.0
+  bodyColor: string;
+  accentColor: string;
+  glowColor: string;
+  glowIntensity: number;
   outfit: OutfitType;
   accessory: AccessoryType;
   proportions: {
-    chubbiness: number;       // 0.8 to 1.3 multiplier
-    heightScale: number;      // 0.8 to 1.2
-    headScale: number;        // 0.8 to 1.3
+    chubbiness: number;
+    heightScale: number;
+    headScale: number;
   };
 }
 

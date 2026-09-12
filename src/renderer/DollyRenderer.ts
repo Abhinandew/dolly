@@ -463,6 +463,67 @@ export class DollyRenderer {
       ctx.arc(lm.rightWrist.x, lm.rightWrist.y, bandR, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    } else if (appearance.outfit === 'cape') {
+      ctx.save();
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = 0.88;
+      // Cape body — drapes from shoulders down behind, fluttering shape
+      ctx.beginPath();
+      ctx.moveTo(lm.leftShoulder.x - 4 * scale, lm.leftShoulder.y + 2 * scale);
+      // Left drape
+      ctx.bezierCurveTo(
+        lm.leftShoulder.x - 20 * scale, lm.torso.y + 10 * scale,
+        lm.leftHip.x - 18 * scale,      lm.pelvis.y + 10 * scale,
+        lm.leftHip.x - 8 * scale,       lm.pelvis.y + 30 * scale
+      );
+      // Bottom flutter
+      ctx.bezierCurveTo(
+        lm.pelvis.x - 10 * scale,       lm.pelvis.y + 45 * scale,
+        lm.pelvis.x + 10 * scale,       lm.pelvis.y + 45 * scale,
+        lm.rightHip.x + 8 * scale,      lm.pelvis.y + 30 * scale
+      );
+      // Right drape back up
+      ctx.bezierCurveTo(
+        lm.rightHip.x + 18 * scale,     lm.pelvis.y + 10 * scale,
+        lm.rightShoulder.x + 20 * scale, lm.torso.y + 10 * scale,
+        lm.rightShoulder.x + 4 * scale,  lm.rightShoulder.y + 2 * scale
+      );
+      ctx.closePath();
+      ctx.fill();
+      // Cape collar
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = appearance.bodyColor || '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(lm.neck.x, lm.neck.y + 4 * scale, 11 * scale, 0, Math.PI);
+      ctx.fill();
+      ctx.restore();
+    } else if (appearance.outfit === 'tracksuit') {
+      ctx.save();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 4.5 * scale;
+      ctx.lineCap = 'round';
+      // Side stripes down both legs
+      ctx.beginPath();
+      ctx.moveTo(lm.leftHip.x + 12 * scale * (lm.leftHip.x < lm.pelvis.x ? 1 : -1), lm.leftHip.y);
+      ctx.lineTo(lm.leftAnkle.x + 8 * scale * (lm.leftHip.x < lm.pelvis.x ? 1 : -1), lm.leftAnkle.y);
+      ctx.moveTo(lm.rightHip.x - 12 * scale * (lm.rightHip.x > lm.pelvis.x ? 1 : -1), lm.rightHip.y);
+      ctx.lineTo(lm.rightAnkle.x - 8 * scale * (lm.rightHip.x > lm.pelvis.x ? 1 : -1), lm.rightAnkle.y);
+      ctx.stroke();
+      // Side stripes down both arms
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.moveTo(lm.leftShoulder.x, lm.leftShoulder.y + 4 * scale);
+      ctx.lineTo(lm.leftWrist.x,    lm.leftWrist.y);
+      ctx.moveTo(lm.rightShoulder.x, lm.rightShoulder.y + 4 * scale);
+      ctx.lineTo(lm.rightWrist.x,    lm.rightWrist.y);
+      ctx.stroke();
+      // Chest zip line
+      ctx.lineWidth = 2.5 * scale;
+      ctx.beginPath();
+      ctx.moveTo(lm.neck.x, lm.neck.y + 6 * scale);
+      ctx.lineTo(lm.torso.x, lm.torso.y + 5 * scale);
+      ctx.stroke();
+      ctx.restore();
     }
 
     // 2. ACCESSORIES
@@ -555,6 +616,207 @@ export class DollyRenderer {
       ctx.beginPath();
       ctx.ellipse(lm.head.x, lm.head.y - headR - 14 * scale, 32 * scale, 9 * scale, 0, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
+    } else if (appearance.accessory === 'crown') {
+      ctx.save();
+      ctx.fillStyle = '#facc15';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2 * scale;
+      const crownY = lm.head.y - headR + 2 * scale;
+      const cw = headR * 1.1;
+      // Crown base band
+      ctx.beginPath();
+      ctx.roundRect(lm.head.x - cw, crownY - 6 * scale, cw * 2, 10 * scale, 3 * scale);
+      ctx.fill();
+      ctx.stroke();
+      // Five crown points
+      const pts = 5;
+      for (let i = 0; i < pts; i++) {
+        const px = lm.head.x - cw + (i / (pts - 1)) * cw * 2;
+        const ptH = (i % 2 === 0 ? 20 : 12) * scale;
+        ctx.beginPath();
+        ctx.moveTo(px - 6 * scale, crownY - 4 * scale);
+        ctx.lineTo(px, crownY - ptH);
+        ctx.lineTo(px + 6 * scale, crownY - 4 * scale);
+        ctx.fillStyle = '#facc15';
+        ctx.fill();
+        ctx.stroke();
+      }
+      // Gem dots on tall points
+      ctx.fillStyle = accent;
+      for (let i = 0; i < pts; i += 2) {
+        const px = lm.head.x - cw + (i / (pts - 1)) * cw * 2;
+        ctx.beginPath();
+        ctx.arc(px, crownY - 17 * scale, 3.5 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (appearance.accessory === 'cat_ears') {
+      ctx.save();
+      ctx.fillStyle = appearance.bodyColor || '#FFFFFF';
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2 * scale;
+      const earBase = lm.head.y - headR + 4 * scale;
+      // Left ear
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - headR * 0.55, earBase);
+      ctx.lineTo(lm.head.x - headR * 0.75, earBase - 22 * scale);
+      ctx.lineTo(lm.head.x - headR * 0.15, earBase - 8 * scale);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // Left inner ear
+      ctx.fillStyle = 'rgba(244,114,182,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - headR * 0.54, earBase - 2 * scale);
+      ctx.lineTo(lm.head.x - headR * 0.7,  earBase - 16 * scale);
+      ctx.lineTo(lm.head.x - headR * 0.22, earBase - 7 * scale);
+      ctx.closePath();
+      ctx.fill();
+      // Right ear
+      ctx.fillStyle = appearance.bodyColor || '#FFFFFF';
+      ctx.strokeStyle = accent;
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x + headR * 0.55, earBase);
+      ctx.lineTo(lm.head.x + headR * 0.75, earBase - 22 * scale);
+      ctx.lineTo(lm.head.x + headR * 0.15, earBase - 8 * scale);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(244,114,182,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x + headR * 0.54, earBase - 2 * scale);
+      ctx.lineTo(lm.head.x + headR * 0.7,  earBase - 16 * scale);
+      ctx.lineTo(lm.head.x + headR * 0.22, earBase - 7 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else if (appearance.accessory === 'devil_horns') {
+      ctx.save();
+      ctx.fillStyle = '#dc2626';
+      ctx.strokeStyle = '#991b1b';
+      ctx.lineWidth = 2 * scale;
+      const hornBase = lm.head.y - headR + 6 * scale;
+      // Left horn
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - headR * 0.45, hornBase);
+      ctx.bezierCurveTo(
+        lm.head.x - headR * 0.65, hornBase - 16 * scale,
+        lm.head.x - headR * 0.55, hornBase - 26 * scale,
+        lm.head.x - headR * 0.38, hornBase - 28 * scale
+      );
+      ctx.bezierCurveTo(
+        lm.head.x - headR * 0.3, hornBase - 14 * scale,
+        lm.head.x - headR * 0.22, hornBase - 4 * scale,
+        lm.head.x - headR * 0.2, hornBase
+      );
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // Right horn
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x + headR * 0.45, hornBase);
+      ctx.bezierCurveTo(
+        lm.head.x + headR * 0.65, hornBase - 16 * scale,
+        lm.head.x + headR * 0.55, hornBase - 26 * scale,
+        lm.head.x + headR * 0.38, hornBase - 28 * scale
+      );
+      ctx.bezierCurveTo(
+        lm.head.x + headR * 0.3, hornBase - 14 * scale,
+        lm.head.x + headR * 0.22, hornBase - 4 * scale,
+        lm.head.x + headR * 0.2, hornBase
+      );
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    } else if (appearance.accessory === 'flower_crown') {
+      ctx.save();
+      const crownCX = lm.head.x;
+      const crownCY = lm.head.y - headR - 2 * scale;
+      const flowers = [
+        { dx: -headR * 0.9, dy: 2 * scale,  color: '#fb7185' },
+        { dx: -headR * 0.45, dy: -8 * scale, color: '#facc15' },
+        { dx: 0,            dy: -11 * scale, color: '#34d399' },
+        { dx: headR * 0.45, dy: -8 * scale,  color: '#a78bfa' },
+        { dx: headR * 0.9,  dy: 2 * scale,   color: '#fb7185' },
+      ];
+      // Stem band
+      ctx.strokeStyle = '#16a34a';
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.arc(crownCX, crownCY, headR * 0.92, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+      // Flower petals
+      for (const f of flowers) {
+        const fx = crownCX + f.dx;
+        const fy = crownCY + f.dy;
+        const pr = 5.5 * scale;
+        // 5 petals
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.ellipse(fx + Math.cos(a) * pr, fy + Math.sin(a) * pr, pr * 0.7, pr * 0.5, a, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Center
+        ctx.fillStyle = '#fef9c3';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 3 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (appearance.accessory === 'ninja_band') {
+      ctx.save();
+      ctx.fillStyle = '#1e293b';
+      // Dark band wrapped around head
+      const bandH = 14 * scale;
+      ctx.beginPath();
+      ctx.ellipse(lm.head.x, lm.head.y - 1 * scale, headR + 3 * scale, bandH * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Knot/tie on left side
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - headR - 2 * scale, lm.head.y - 3 * scale);
+      ctx.lineTo(lm.head.x - headR - 16 * scale, lm.head.y - 10 * scale);
+      ctx.lineTo(lm.head.x - headR - 14 * scale, lm.head.y + 8 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - headR - 2 * scale, lm.head.y + 2 * scale);
+      ctx.lineTo(lm.head.x - headR - 18 * scale, lm.head.y + 12 * scale);
+      ctx.lineTo(lm.head.x - headR - 12 * scale, lm.head.y - 5 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else if (appearance.accessory === 'star_glasses') {
+      ctx.save();
+      const sg = 18 * scale;
+      const sy  = lm.head.y - 3 * scale;
+      // Left star lens
+      const drawStar = (cx: number, cy: number, r: number) => {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a   = (i * Math.PI) / 5 - Math.PI / 2;
+          const rad = i % 2 === 0 ? r : r * 0.42;
+          const sx  = cx + Math.cos(a) * rad;
+          const ssy = cy + Math.sin(a) * rad;
+          i === 0 ? ctx.moveTo(sx, ssy) : ctx.lineTo(sx, ssy);
+        }
+        ctx.closePath();
+        ctx.fill();
+      };
+      ctx.fillStyle = accent;
+      drawStar(lm.head.x - sg, sy, sg * 0.58);
+      drawStar(lm.head.x + sg, sy, sg * 0.58);
+      // Bridge
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2.5 * scale;
+      ctx.beginPath();
+      ctx.moveTo(lm.head.x - sg * 0.38, sy);
+      ctx.lineTo(lm.head.x + sg * 0.38, sy);
+      ctx.stroke();
+      // Shine
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      drawStar(lm.head.x - sg, sy - sg * 0.12, sg * 0.18);
+      drawStar(lm.head.x + sg, sy - sg * 0.12, sg * 0.18);
       ctx.restore();
     }
   }

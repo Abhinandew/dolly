@@ -60,18 +60,20 @@ export class DanceEngine {
 
   // ── BPM-zone movement pools ────────────────────────────────────────────────
 
-  /** Slow (<92 BPM) — fluid, soulful, laid-back */
+  /** Slow (<92 BPM) — fluid, soulful, classical */
   private slowPrimaries: MovementType[] = [
     'hip sway', 'shoulder bounce', 'hands on hips',
     'left arm wave', 'right arm wave', 'side groove',
     'forward step', 'backward step', 'lock groove',
     'chest pop', 'bounce step', 'wave roll', 'groove pulse',
+    'arabesque', 'ballet releve', 'worm wave', 'moonwalk',
   ];
   private slowCounters: MovementType[] = [
     'head bob', 'shoulder bounce', 'hip sway', 'chest pop', 'wave roll',
+    'groove pulse', 'arabesque',
   ];
 
-  /** Mid (92-128 BPM) — pop, funk, disco */
+  /** Mid (92-128 BPM) — pop, funk, disco, street */
   private midPrimaries: MovementType[] = [
     'body bounce', 'side groove', 'hip sway',
     'left step', 'right step', 'left arm wave', 'right arm wave',
@@ -79,13 +81,16 @@ export class DanceEngine {
     'forward step', 'spin', 'running man', 'chest pop',
     'bounce step', 'lock groove', 'robot chop',
     'two step', 'criss cross', 'groove pulse', 'stomp',
+    'floss', 'dab', 'moonwalk', 'tutting',
+    'power slide', 'twerk bounce', 'matrix lean',
   ];
   private midCounters: MovementType[] = [
     'head bob', 'shoulder bounce', 'hip sway', 'body bounce',
     'left arm wave', 'right arm wave', 'chest pop', 'arm slash',
+    'groove pulse', 'tutting',
   ];
 
-  /** Fast (>128 BPM) — EDM, K-pop, rave */
+  /** Fast (>128 BPM) — EDM, K-pop, rave, breakdance */
   private fastPrimaries: MovementType[] = [
     'body bounce', 'both arms up', 'spin', 'squat',
     'left step', 'right step', 'side groove',
@@ -93,16 +98,19 @@ export class DanceEngine {
     'forward step', 'running man', 'windmill arms',
     'robot chop', 'chest pop', 'bounce step',
     'arm slash', 'stomp', 'criss cross',
+    'bboy freeze', 'windmill spin', 'floss',
+    'dab', 'twerk bounce', 'matrix lean', 'power slide',
   ];
   private fastCounters: MovementType[] = [
     'head bob', 'body bounce', 'shoulder bounce', 'both arms up',
-    'windmill arms', 'chest pop', 'arm slash',
+    'windmill arms', 'chest pop', 'arm slash', 'tutting',
   ];
 
   /** Accent / drop accents (fired on bar downbeats & phrase drops) */
   private accentMoves: MovementType[] = [
     'jump', 'both arms up', 'squat', 'spin', 'final pose',
     'windmill arms', 'chest pop', 'robot chop', 'arm slash', 'stomp',
+    'bboy freeze', 'windmill spin', 'matrix lean', 'dab', 'power slide',
   ];
 
   // ── Micro-jitter ──────────────────────────────────────────────────────────

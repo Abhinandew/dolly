@@ -17,20 +17,28 @@ export const CustomizeDolly: React.FC = () => {
   ];
 
   const outfits: Array<{ type: OutfitType; label: string; desc: string }> = [
-    { type: 'none', label: 'Classic Restroom Symbol', desc: 'Minimal continuous bulky silhouette' },
-    { type: 'hoodie', label: 'Cozy Chubby Hoodie', desc: 'Relaxed street hoodie with kangaroo pouch' },
-    { type: 'suspenders', label: 'Vintage Suspenders', desc: 'Classic dance suspenders' },
-    { type: 'bowtie', label: 'Gentleman Bowtie', desc: 'Formal crimson bowtie' },
-    { type: 'athletic', label: 'Athletic Sweatbands', desc: 'Sporty wrist sweatbands for intense moves' },
+    { type: 'none',        label: 'Classic',             desc: 'Minimal continuous bulky silhouette' },
+    { type: 'hoodie',      label: 'Cozy Hoodie',         desc: 'Relaxed street hoodie with kangaroo pouch' },
+    { type: 'suspenders',  label: 'Suspenders',          desc: 'Classic dance suspenders' },
+    { type: 'bowtie',      label: 'Gentleman Bowtie',    desc: 'Formal crimson bowtie' },
+    { type: 'athletic',    label: 'Athletic Bands',      desc: 'Sporty wrist sweatbands' },
+    { type: 'cape',        label: '🦸 Hero Cape',        desc: 'Dramatic flowing cape behind' },
+    { type: 'tracksuit',   label: '🏃 Tracksuit',        desc: 'Side-stripe athletic tracksuit' },
   ];
 
   const accessories: Array<{ type: AccessoryType; label: string }> = [
-    { type: 'none', label: 'None' },
-    { type: 'headphones', label: 'DJ Studio Headphones' },
-    { type: 'cool_shades', label: 'Wayfarer Cool Shades' },
-    { type: 'party_visor', label: 'Cyber Rave Visor' },
-    { type: 'top_hat', label: 'Magician Top Hat' },
-    { type: 'halo', label: 'Golden Angel Halo' },
+    { type: 'none',         label: 'None' },
+    { type: 'headphones',   label: '🎧 DJ Headphones' },
+    { type: 'cool_shades',  label: '😎 Cool Shades' },
+    { type: 'party_visor',  label: '🕶️ Cyber Visor' },
+    { type: 'top_hat',      label: '🎩 Top Hat' },
+    { type: 'halo',         label: '😇 Angel Halo' },
+    { type: 'crown',        label: '👑 Royal Crown' },
+    { type: 'cat_ears',     label: '🐱 Cat Ears' },
+    { type: 'devil_horns',  label: '😈 Devil Horns' },
+    { type: 'flower_crown', label: '🌸 Flower Crown' },
+    { type: 'ninja_band',   label: '🥷 Ninja Band' },
+    { type: 'star_glasses', label: '⭐ Star Glasses' },
   ];
 
   return (
