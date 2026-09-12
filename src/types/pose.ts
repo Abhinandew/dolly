@@ -126,4 +126,10 @@ export type MovementType =
   | 'chest pop'
   | 'windmill arms'
   | 'bounce step'
-  | 'lock groove';
+  | 'lock groove'
+  | 'wave roll'
+  | 'two step'
+  | 'criss cross'
+  | 'arm slash'
+  | 'stomp'
+  | 'groove pulse';

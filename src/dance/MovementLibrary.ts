@@ -908,33 +908,248 @@ export class MovementLibrary {
   }
 
   /**
-   * Dispatcher helper by movement name
+   * 25. WAVE ROLL: Full-body ripple from legs through torso to arms.
+   *     Slow sinusoidal propagation up the body — great for slow R&B.
    */
+  public static waveRoll(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Wave travels up the body — each segment lags the one below
+    const legWave    = Math.sin(p);
+    const pelvisWave = Math.sin(p - 0.4);
+    const torsoWave  = Math.sin(p - 0.8);
+    const armWave    = Math.sin(p - 1.2);
+    const headWave   = Math.sin(p - 1.6);
+
+    return {
+      root: { x: pelvisWave * 0.1 * intensity, y: Math.abs(legWave) * 0.15 * intensity, scaleX: 1, scaleY: 1, rotation: torsoWave * 0.04 * intensity },
+      pelvis: { x: pelvisWave * 0.3 * intensity, y: 0, angle: pelvisWave * 0.18 * intensity },
+      torso:  { angle: torsoWave * 0.22 * intensity, stretch: 1 + Math.abs(torsoWave) * 0.04 * intensity },
+      head:   { x: headWave * 0.08 * intensity, y: headWave * 0.06 * intensity, angle: headWave * 0.18 * intensity },
+      leftArm: {
+        shoulderAngle: 0.3 + armWave * 0.55 * intensity,
+        elbowAngle:    0.4 + Math.sin(p - 1.5) * 0.4 * intensity,
+        wristAngle:    Math.sin(p - 1.8) * 0.25 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.3 - armWave * 0.55 * intensity,
+        elbowAngle:    0.4 - Math.sin(p - 1.5) * 0.4 * intensity,
+        wristAngle:    -Math.sin(p - 1.8) * 0.25 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.06 + Math.max(0,  legWave) * 0.25 * intensity, kneeAngle: 0.04 + Math.max(0,  legWave) * 0.2, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.06 + Math.max(0, -legWave) * 0.25 * intensity, kneeAngle: 0.04 + Math.max(0, -legWave) * 0.2, ankleAngle: 0 },
+    };
+  }
+
+  /**
+   * 26. TWO STEP: Classic 2-step side-to-side with arm swing.
+   *     Alternates weight every half-beat — quintessential country/swing feel.
+   */
+  public static twoStep(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Two full weight shifts per beat cycle
+    const step = Math.sin(p * 2);
+    const lift  = Math.abs(Math.cos(p * 2)) * 0.18 * intensity;
+
+    return {
+      root: { x: step * 0.3 * intensity, y: lift, scaleX: 1, scaleY: 1, rotation: step * 0.05 * intensity },
+      pelvis: { x: step * 0.22 * intensity, y: 0, angle: step * 0.14 * intensity },
+      torso:  { angle: -step * 0.1 * intensity, stretch: 1 },
+      head:   { x: 0, y: 0, angle: step * 0.07 * intensity },
+      leftArm: {
+        shoulderAngle: 0.3 - step * 0.45 * intensity,
+        elbowAngle:    0.45 + Math.abs(step) * 0.2,
+        wristAngle:    -step * 0.1 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.3 + step * 0.45 * intensity,
+        elbowAngle:    0.45 + Math.abs(step) * 0.2,
+        wristAngle:    step * 0.1 * intensity,
+      },
+      leftLeg: {
+        hipAngle:   0.06 + Math.max(0, -step) * 0.32 * intensity,
+        kneeAngle:  0.04 + Math.max(0, -step) * 0.28 * intensity,
+        ankleAngle: 0,
+      },
+      rightLeg: {
+        hipAngle:   0.06 + Math.max(0,  step) * 0.32 * intensity,
+        kneeAngle:  0.04 + Math.max(0,  step) * 0.28 * intensity,
+        ankleAngle: 0,
+      },
+    };
+  }
+
+  /**
+   * 27. CRISS CROSS: Feet cross and uncross while arms open and close.
+   *     Gives a fast shuffly footwork impression.
+   */
+  public static crissCross(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    const cross = Math.sin(p * 2); // fast crossover
+    const open  = Math.cos(p * 2);
+    const bob   = Math.abs(Math.sin(p)) * 0.14 * intensity;
+
+    return {
+      root: { x: 0, y: bob, scaleX: 1 + Math.abs(cross) * 0.05, scaleY: 1 - Math.abs(cross) * 0.03, rotation: cross * 0.04 * intensity },
+      pelvis: { x: cross * 0.15 * intensity, y: 0, angle: cross * 0.12 * intensity },
+      torso:  { angle: -cross * 0.08 * intensity, stretch: 1 },
+      head:   { x: 0, y: 0, angle: -cross * 0.06 * intensity },
+      leftArm: {
+        shoulderAngle: 0.35 + open * 0.5 * intensity,
+        elbowAngle:    0.5  + Math.abs(cross) * 0.3,
+        wristAngle:    open * 0.15 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.35 - open * 0.5 * intensity,
+        elbowAngle:    0.5  + Math.abs(cross) * 0.3,
+        wristAngle:    -open * 0.15 * intensity,
+      },
+      leftLeg: {
+        hipAngle:   0.08 + cross * 0.22 * intensity,
+        kneeAngle:  0.06 + Math.abs(cross) * 0.18,
+        ankleAngle: cross * 0.08 * intensity,
+      },
+      rightLeg: {
+        hipAngle:   0.08 - cross * 0.22 * intensity,
+        kneeAngle:  0.06 + Math.abs(cross) * 0.18,
+        ankleAngle: -cross * 0.08 * intensity,
+      },
+    };
+  }
+
+  /**
+   * 28. ARM SLASH: Sharp diagonal arm cuts — one arm slashes down while the other swings up.
+   *     Fast and aggressive — great for EDM drops and high-energy moments.
+   */
+  public static armSlash(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    // Sharp asymmetric cuts — use power curve for attack feel
+    const slash = Math.pow(Math.abs(Math.sin(p)), 0.4) * Math.sign(Math.sin(p));
+    const body  = Math.sin(p) * 0.1 * intensity;
+
+    return {
+      root: { x: body * 0.8, y: Math.abs(body) * 0.5 + 0.05 * intensity, scaleX: 1, scaleY: 1, rotation: body * 0.08 },
+      torso: { angle: slash * 0.2 * intensity, stretch: 1 },
+      head:  { x: 0, y: 0, angle: -slash * 0.14 * intensity },
+      leftArm: {
+        shoulderAngle: 0.5  + slash * 1.1 * intensity,
+        elbowAngle:    0.25 + Math.abs(slash) * 0.6 * intensity,
+        wristAngle:    slash * 0.4 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.5  - slash * 1.1 * intensity,
+        elbowAngle:    0.25 + Math.abs(slash) * 0.6 * intensity,
+        wristAngle:    -slash * 0.4 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.06 + Math.abs(slash) * 0.12 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.06 + Math.abs(slash) * 0.12 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+    };
+  }
+
+  /**
+   * 29. STOMP: Heavy single-leg stomp alternating each beat.
+   *     Body drops on the stomp, springs back up. Very bass-forward feel.
+   */
+  public static stomp(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    const leftStomp  = Math.max(0,  Math.sin(p));   // stomp on beat
+    const rightStomp = Math.max(0, -Math.sin(p));   // stomp on off-beat
+    const drop       = Math.max(leftStomp, rightStomp);
+
+    return {
+      root: {
+        x: (leftStomp - rightStomp) * 0.12 * intensity,
+        y: drop * 0.35 * intensity,
+        scaleX: 1 + drop * 0.18,
+        scaleY: 1 - drop * 0.14,
+        rotation: (leftStomp - rightStomp) * 0.04 * intensity,
+      },
+      pelvis: { x: (leftStomp - rightStomp) * 0.18 * intensity, y: drop * 0.1, angle: (leftStomp - rightStomp) * 0.12 * intensity },
+      torso:  { angle: drop * 0.08 * intensity, stretch: 1 - drop * 0.04 },
+      head:   { x: 0, y: drop * 0.06, angle: 0 },
+      leftLeg: {
+        hipAngle:   0.08 + leftStomp  * 0.55 * intensity,
+        kneeAngle:  0.06 + leftStomp  * 0.85 * intensity,
+        ankleAngle: -leftStomp  * 0.28 * intensity,
+      },
+      rightLeg: {
+        hipAngle:   0.08 + rightStomp * 0.55 * intensity,
+        kneeAngle:  0.06 + rightStomp * 0.85 * intensity,
+        ankleAngle: -rightStomp * 0.28 * intensity,
+      },
+      leftArm: {
+        shoulderAngle: 0.35 + leftStomp  * 0.35 * intensity,
+        elbowAngle:    0.5  + leftStomp  * 0.4 * intensity,
+        wristAngle:    0,
+      },
+      rightArm: {
+        shoulderAngle: 0.35 + rightStomp * 0.35 * intensity,
+        elbowAngle:    0.5  + rightStomp * 0.4 * intensity,
+        wristAngle:    0,
+      },
+    };
+  }
+
+  /**
+   * 30. GROOVE PULSE: Subtle whole-body throb synced to the beat.
+   *     Low-key, perpetual motion — ideal as a counter-layer for slow songs.
+   *     Keeps Dolly alive without overpowering the primary move.
+   */
+  public static groovePulse(phase: number, intensity: number = 1.0): Partial<DollPose> {
+    const p = phase * Math.PI * 2;
+    const pulse = Math.sin(p);
+    const micro = Math.sin(p * 3) * 0.25; // higher-harmonic flutter
+
+    return {
+      root: { x: micro * 0.04 * intensity, y: Math.abs(pulse) * 0.12 * intensity, scaleX: 1 + Math.abs(pulse) * 0.06, scaleY: 1 - Math.abs(pulse) * 0.04, rotation: micro * 0.02 * intensity },
+      pelvis: { x: pulse * 0.12 * intensity, y: 0, angle: pulse * 0.08 * intensity },
+      torso:  { angle: -pulse * 0.06 * intensity, stretch: 1 + Math.abs(pulse) * 0.02 },
+      head:   { x: micro * 0.03 * intensity, y: Math.abs(pulse) * 0.04 * intensity, angle: pulse * 0.06 * intensity },
+      leftArm: {
+        shoulderAngle: 0.2  + pulse * 0.15 * intensity,
+        elbowAngle:    0.28 + Math.abs(pulse) * 0.12 * intensity,
+        wristAngle:    micro * 0.08 * intensity,
+      },
+      rightArm: {
+        shoulderAngle: 0.2  - pulse * 0.15 * intensity,
+        elbowAngle:    0.28 + Math.abs(pulse) * 0.12 * intensity,
+        wristAngle:    -micro * 0.08 * intensity,
+      },
+      leftLeg:  { hipAngle: 0.05 + Math.abs(pulse) * 0.06 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+      rightLeg: { hipAngle: 0.05 + Math.abs(pulse) * 0.06 * intensity, kneeAngle: 0.04, ankleAngle: 0 },
+    };
+  }
+
   public static getMovementPose(type: MovementType, phase: number, intensity: number = 1.0): Partial<DollPose> {
     switch (type) {
-      case 'head bob':       return this.headBob(phase, intensity);
-      case 'body bounce':    return this.bodyBounce(phase, intensity);
-      case 'shoulder bounce':return this.shoulderBounce(phase, intensity);
-      case 'left arm wave':  return this.leftArmWave(phase, intensity);
-      case 'right arm wave': return this.rightArmWave(phase, intensity);
-      case 'both arms up':   return this.bothArmsUp(phase, intensity);
-      case 'left step':      return this.leftStep(phase, intensity);
-      case 'right step':     return this.rightStep(phase, intensity);
-      case 'forward step':   return this.forwardStep(phase, intensity);
-      case 'backward step':  return this.backwardStep(phase, intensity);
-      case 'hip sway':       return this.hipSway(phase, intensity);
-      case 'squat':          return this.squat(phase, intensity);
-      case 'jump':           return this.jump(phase, intensity);
-      case 'spin':           return this.spin(phase, intensity);
-      case 'side groove':    return this.sideGroove(phase, intensity);
-      case 'hands on hips':  return this.handsOnHips(phase, intensity);
-      case 'final pose':     return this.finalPose(phase, intensity);
-      case 'running man':    return this.runningMan(phase, intensity);
-      case 'robot chop':     return this.robotChop(phase, intensity);
-      case 'chest pop':      return this.chestPop(phase, intensity);
-      case 'windmill arms':  return this.windmillArms(phase, intensity);
-      case 'bounce step':    return this.bounceStep(phase, intensity);
-      case 'lock groove':    return this.lockGroove(phase, intensity);
+      case 'head bob':        return this.headBob(phase, intensity);
+      case 'body bounce':     return this.bodyBounce(phase, intensity);
+      case 'shoulder bounce': return this.shoulderBounce(phase, intensity);
+      case 'left arm wave':   return this.leftArmWave(phase, intensity);
+      case 'right arm wave':  return this.rightArmWave(phase, intensity);
+      case 'both arms up':    return this.bothArmsUp(phase, intensity);
+      case 'left step':       return this.leftStep(phase, intensity);
+      case 'right step':      return this.rightStep(phase, intensity);
+      case 'forward step':    return this.forwardStep(phase, intensity);
+      case 'backward step':   return this.backwardStep(phase, intensity);
+      case 'hip sway':        return this.hipSway(phase, intensity);
+      case 'squat':           return this.squat(phase, intensity);
+      case 'jump':            return this.jump(phase, intensity);
+      case 'spin':            return this.spin(phase, intensity);
+      case 'side groove':     return this.sideGroove(phase, intensity);
+      case 'hands on hips':   return this.handsOnHips(phase, intensity);
+      case 'final pose':      return this.finalPose(phase, intensity);
+      case 'running man':     return this.runningMan(phase, intensity);
+      case 'robot chop':      return this.robotChop(phase, intensity);
+      case 'chest pop':       return this.chestPop(phase, intensity);
+      case 'windmill arms':   return this.windmillArms(phase, intensity);
+      case 'bounce step':     return this.bounceStep(phase, intensity);
+      case 'lock groove':     return this.lockGroove(phase, intensity);
+      case 'wave roll':       return this.waveRoll(phase, intensity);
+      case 'two step':        return this.twoStep(phase, intensity);
+      case 'criss cross':     return this.crissCross(phase, intensity);
+      case 'arm slash':       return this.armSlash(phase, intensity);
+      case 'stomp':           return this.stomp(phase, intensity);
+      case 'groove pulse':    return this.groovePulse(phase, intensity);
       case 'idle':
       default:
         return this.idle(phase, intensity);
