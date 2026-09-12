@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Music, Sliders, Palette, ShieldCheck, Activity } from 'lucide-react';
+import { Sparkles, Sliders, Palette, Activity } from 'lucide-react';
 import { useDolly } from '../context/DollyContext';
 
 export interface NavbarProps {
@@ -12,9 +12,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPath, onNaviga
 
   const navItems = [
     { path: '/', label: 'Home', icon: Sparkles },
-    { path: '/dances', label: 'Dance Library', icon: Music },
     { path: '/customize', label: 'Customize', icon: Palette },
-    { path: '/admin', label: 'Dance Studio', icon: ShieldCheck },
     { path: '/settings', label: 'Settings', icon: Sliders },
   ];
 

@@ -108,6 +108,8 @@ export class DanceEngine {
   // ── Micro-jitter ──────────────────────────────────────────────────────────
   private jitter: number = 0;
   private jitterTarget: number = 0;
+  private lastSwitchTimeMs: number = 0;        // wall-clock time of last groove switch
+  private switchIntervalMs: number = 2500;     // fallback switch interval in ms
   private lastBpm: number = 120;
 
   constructor() {
@@ -190,24 +192,17 @@ export class DanceEngine {
     this.lastBpm    = bpm;
 
     // ── Beat counter & phrase tracking ─────────────────────────────────────
+    const nowMs = performance.now();
+
+    // Time-based fallback: switch move every switchIntervalMs even if no beats detected.
+    // This ensures the character always varies even when beat detection is unreliable.
+    const timeSinceSwitch = nowMs - this.lastSwitchTimeMs;
+    const shouldSwitchByTime = timeSinceSwitch >= this.switchIntervalMs;
+
     if (audio.beatDetected) {
       this.globalBeatCount++;
       this.beatsSinceSwitch++;
       this.phrasePosition = this.globalBeatCount % 8;
-
-      // Groove switch schedule — shorter at high energy, longer at low energy
-      if (this.beatsSinceSwitch >= this.switchAfterBeats || zone !== prevZone) {
-        this.beatsSinceSwitch = 0;
-        this._randomizePrimary(zone);
-
-        if (energy > 0.75 || treble > 0.65) {
-          this.switchAfterBeats = 2 + Math.floor(Math.random() * 2);   // 2-3 beats
-        } else if (energy > 0.45) {
-          this.switchAfterBeats = 3 + Math.floor(Math.random() * 3);   // 3-5 beats
-        } else {
-          this.switchAfterBeats = 5 + Math.floor(Math.random() * 4);   // 5-8 beats
-        }
-      }
 
       // Accent on beat 1 of every 4-beat bar
       if (this.phrasePosition % 4 === 0) {
@@ -230,6 +225,29 @@ export class DanceEngine {
 
       // Micro-jitter: slightly randomise phase each beat
       this.jitterTarget = (Math.random() - 0.5) * 0.06;
+    }
+
+    // ── Groove switch (beat-driven OR time-driven fallback) ───────────────
+    const beatDrivenSwitch = audio.beatDetected && this.beatsSinceSwitch >= this.switchAfterBeats;
+    if (beatDrivenSwitch || shouldSwitchByTime || zone !== prevZone) {
+      this.beatsSinceSwitch = 0;
+      this.lastSwitchTimeMs = nowMs;
+      this._randomizePrimary(zone);
+
+      // Recalculate both beat-count hold AND time hold
+      if (energy > 0.75 || treble > 0.65) {
+        this.switchAfterBeats  = 2 + Math.floor(Math.random() * 2);    // 2-3 beats
+        this.switchIntervalMs  = 800 + Math.random() * 700;            // 0.8–1.5 s
+      } else if (energy > 0.45) {
+        this.switchAfterBeats  = 3 + Math.floor(Math.random() * 3);    // 3-5 beats
+        this.switchIntervalMs  = 1500 + Math.random() * 1000;          // 1.5–2.5 s
+      } else {
+        this.switchAfterBeats  = 5 + Math.floor(Math.random() * 4);    // 5-8 beats
+        this.switchIntervalMs  = 2500 + Math.random() * 1500;          // 2.5–4 s
+      }
+
+      // Fire an accent on any switch so the transition is visually punchy
+      this.accentMovement = this._pickFrom(this.accentMoves, this.accentMovement);
     }
 
     this.jitter += (this.jitterTarget - this.jitter) * 0.15;
@@ -338,6 +356,8 @@ export class DanceEngine {
     this.jitterTarget       = 0;
     this.isDancing          = false;
     this.gateEnergy         = 0;
+    this.lastSwitchTimeMs   = 0;
+    this.switchIntervalMs   = 2500;
     this._randomizePrimary(this._bpmZone(this.lastBpm));
   }
 }

@@ -5,17 +5,11 @@ import { Home } from './pages/Home';
 import { Loader2 } from 'lucide-react';
 
 // Lazy-load non-essential pages for ultra-fast startup
-const DanceLibrary = lazy(() =>
-  import('./pages/DanceLibrary').then((module) => ({ default: module.DanceLibrary }))
-);
 const CustomizeDolly = lazy(() =>
   import('./pages/CustomizeDolly').then((module) => ({ default: module.CustomizeDolly }))
 );
 const Settings = lazy(() =>
   import('./pages/Settings').then((module) => ({ default: module.Settings }))
-);
-const AdminStudio = lazy(() =>
-  import('./pages/AdminStudio').then((module) => ({ default: module.AdminStudio }))
 );
 
 const PageLoader: React.FC = () => (
@@ -47,12 +41,6 @@ export const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPath) {
-      case '/dances':
-        return (
-          <Suspense fallback={<PageLoader />}>
-            <DanceLibrary onNavigateHome={() => navigate('/')} />
-          </Suspense>
-        );
       case '/customize':
         return (
           <Suspense fallback={<PageLoader />}>
@@ -63,12 +51,6 @@ export const App: React.FC = () => {
         return (
           <Suspense fallback={<PageLoader />}>
             <Settings />
-          </Suspense>
-        );
-      case '/admin':
-        return (
-          <Suspense fallback={<PageLoader />}>
-            <AdminStudio />
           </Suspense>
         );
       case '/':
